@@ -1,0 +1,54 @@
+# ============================================
+# PHASE 1: Wake Word Detection (Week 1)
+# ============================================
+
+# Core Dependencies
+python-dotenv==1.0.0
+# asyncio==3.4.3  # Built-in to Python 3.11+
+
+# Wake Word Detection
+openwakeword==0.6.0  # Open source, no API key needed!
+pyaudio==0.2.14  # Required for microphone access
+
+# ============================================
+# PHASE 2+: Uncomment as needed
+# ============================================
+
+# # LLM & AI (Phase 3: Reasoning & Memory)
+# openai==1.10.0  # OpenRouter uses OpenAI-compatible API
+# langchain==0.1.0
+# langchain-openai==0.0.2
+
+# # Speech Recognition & TTS (Phase 2: Audio Agent)
+# openai-whisper==20231117
+# SpeechRecognition==3.10.1
+# google-cloud-texttospeech==2.14.1
+# pyaudio==0.2.14
+
+# # Google APIs (Phase 4: Calendar, Phase 5: Translation)
+# google-auth==2.27.0
+# google-auth-oauthlib==1.2.0
+# google-api-python-client==2.116.0
+# google-cloud-translate==3.15.0
+# google-cloud-vision==3.7.0
+
+# # Weather API (Phase 6: Weather)
+# requests==2.31.0
+
+# # Screen Capture & OCR (Phase 5: Translation)
+# mss==9.0.1
+# pillow==10.2.0
+# opencv-python==4.9.0.80
+
+# # Utilities (Phase 3+)
+# pydantic==2.5.3
+# python-dateutil==2.8.2
+# pytz==2024.1
+
+# # Optional: Redis for memory (if using)
+# # redis==5.0.1
+
+# # Development
+# pytest==7.4.4
+# black==24.1.1
+# pylint==3.0.3

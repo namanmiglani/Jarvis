@@ -1,0 +1,43 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Google credentials
+config/google_calendar_credentials.json
+config/google_calendar_token.json
+config/*.json
+
+# Logs
+logs/*.log
+*.log
+
+# Data
+data/*.db
+data/*.sqlite
+data/screenshots/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Audio files (temporary)
+*.wav
+*.mp3
+temp_audio/
