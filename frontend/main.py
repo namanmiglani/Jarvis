@@ -3,12 +3,13 @@ import glass as glass
 import time as time
 import text as text
 import numpy as np
+import sys
 
-# Windows
-cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 
-# MacOs
-# cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+if sys.platform.startswith("win"):
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+else:
+    cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -32,7 +33,6 @@ while True:
     if not ret:
         break
 
-    h, w, _ = frame.shape
 
     tilted_points = np.float32([
         [400, 50],   # Top Left
@@ -46,7 +46,7 @@ while True:
         cached_glass = glass.apply_tilted_glass(frame, tilted_points)
 
     cv2.imshow("Real-Time Python AR Overlay", cached_glass)
-    frame_count += 1
+    
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
