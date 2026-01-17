@@ -24,7 +24,7 @@ def draw_glass_panel(frame, x, y, w, h):
     return frame
 
 # Initialize Webcam
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 
 while True:
     ret, frame = cap.read()
