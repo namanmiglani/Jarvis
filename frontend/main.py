@@ -8,7 +8,7 @@ import numpy as np
 cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 
 # MacOs
-cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+# cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -46,6 +46,7 @@ while True:
         cached_glass = glass.apply_tilted_glass(frame, tilted_points)
 
     cv2.imshow("Real-Time Python AR Overlay", cached_glass)
+    frame_count += 1
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
