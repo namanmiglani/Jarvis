@@ -3,14 +3,20 @@ Audio Agent
 
 Handles wake word detection, speech-to-text, and text-to-speech.
 Uses OpenWakeWord for wake word detection (fully open source, no API key needed).
+Uses OpenAI Whisper for speech-to-text (local, offline).
 """
 
 import asyncio
 import logging
+import ssl
 import numpy as np
 import pyaudio
+import whisper
 from openwakeword.model import Model
 from typing import Callable, Optional
+
+# Disable SSL verification for Whisper model download (macOS certificate issue)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +34,7 @@ class AudioAgent:
         self.state = "IDLE"  # IDLE, ACTIVE, TRANSLATION_MODE
         self.on_wake_word_detected = on_wake_word_detected
         self.wake_model = None
+        self.whisper_model = None
         self.audio_stream = None
         self.pa = None
         self.is_listening = False
@@ -128,11 +135,74 @@ class AudioAgent:
         print("🔔 *CHIME* - Yes, I'm listening.")
         print("="*50 + "\n")
     
-    async def speech_to_text(self, audio_data):
-        """Convert speech to text using Whisper (Phase 2)."""
-        logger.info("Converting speech to text...")
-        # TODO: Implement Whisper STT in Phase 2
-        pass
+    async def speech_to_text(self) -> str:
+        """
+        Record audio and convert speech to text using Whisper.
+        
+        Returns:
+            Transcribed text from user speech
+        """
+        logger.info("🎤 Listening for your command...")
+        print("\n🎤 Listening... (5 seconds)\n")
+        
+        try:
+            # Load Whisper model if not already loaded
+            if self.whisper_model is None:
+                logger.info("Loading Whisper model (first time only)...")
+                print("⏳ Loading Whisper model... (this may take a moment)")
+                self.whisper_model = whisper.load_model("tiny")  # Fast, ~75MB
+                logger.info("✅ Whisper model loaded")
+            
+            # Record audio for 5 seconds
+            RECORD_SECONDS = 5
+            CHUNK = 1024
+            FORMAT = pyaudio.paInt16
+            CHANNELS = 1
+            RATE = 16000  # Whisper expects 16kHz
+            
+            frames = []
+            
+            # Open audio stream for recording
+            stream = self.pa.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK
+            )
+            
+            logger.info(f"Recording for {RECORD_SECONDS} seconds...")
+            
+            # Record audio
+            for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+                data = stream.read(CHUNK, exception_on_overflow=False)
+                frames.append(data)
+            
+            stream.stop_stream()
+            stream.close()
+            
+            logger.info("Recording complete, transcribing...")
+            print("⏳ Transcribing...")
+            
+            # Convert audio data to numpy array
+            audio_data = np.frombuffer(b''.join(frames), dtype=np.int16)
+            audio_data = audio_data.astype(np.float32) / 32768.0  # Normalize to [-1, 1]
+            
+            # Transcribe with Whisper
+            result = self.whisper_model.transcribe(
+                audio_data,
+                language="en",  # Can auto-detect by removing this
+                fp16=False  # Use FP32 for CPU
+            )
+            
+            transcription = result["text"].strip()
+            logger.info(f"Transcription: {transcription}")
+            
+            return transcription
+            
+        except Exception as e:
+            logger.error(f"❌ Error in speech-to-text: {e}")
+            return ""
     
     async def text_to_speech(self, text: str):
         """Convert text to speech (Phase 2)."""

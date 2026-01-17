@@ -43,12 +43,21 @@ class OrchestratorAgent:
         """Callback when wake word 'Hey Jarvis' is detected."""
         logger.info("🎯 Wake word callback triggered!")
         
-        # TODO Phase 2: Start listening for user command (STT)
-        # TODO Phase 3: Send to Reasoning Agent for intent classification
-        # TODO Phase 4+: Execute appropriate action
+        # Get user's speech command
+        transcription = await self.audio_agent.speech_to_text()
         
-        print("✅ Jarvis is now listening for your command...")
-        print("(Phase 2 will add speech-to-text here)\n")
+        if transcription:
+            print("\n" + "="*50)
+            print(f"📝 You said: \"{transcription}\"")
+            print("="*50 + "\n")
+            
+            # TODO Phase 3: Send to Reasoning Agent for intent classification
+            # TODO Phase 4+: Execute appropriate action
+            
+            logger.info(f"Transcription received: {transcription}")
+        else:
+            print("\n⚠️  No speech detected or transcription failed\n")
+            logger.warning("No transcription received")
     
     async def process_input(self, source: str, data: Dict[str, Any]):
         """Process input from any agent."""
