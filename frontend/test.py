@@ -2,7 +2,11 @@ import cv2
 import numpy as np
 import datetime
 
+# Windows
 cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+
+# MacOs
+cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
 if not cap.isOpened():
     print("Error: Could not open camera")

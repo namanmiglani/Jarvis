@@ -5,7 +5,7 @@ import time
 def draw_glass_panel(frame, x, y, w, h):
     # 1. Extract and Blur the background region
     sub_face = frame[y:y+h, x:x+w]
-    blur = cv2.GaussianBlur(sub_face, (91, 91), 0)
+    blur = cv2.GaussianBlur(sub_face, (115, 115), 0)
     
     # 2. Create a semi-transparent white overlay
     overlay = blur.copy()
@@ -23,8 +23,11 @@ def draw_glass_panel(frame, x, y, w, h):
     
     return frame
 
-# Initialize Webcam
+# Windows
 cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+
+# MacOs
+cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
 while True:
     ret, frame = cap.read()
