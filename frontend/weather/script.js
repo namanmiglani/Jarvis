@@ -54,3 +54,18 @@ const currentWind = weatherData.hourly.wind_speed_10m[0];
 document.getElementById('temp').textContent = `${Math.round(currentTemp)}°C`;
 document.getElementById('precip').textContent = `${Math.round(currentPrecipProb)}% chance of rain`;
 document.getElementById('wind').textContent = `${Math.round(currentWind)} km/h wind`;
+
+// Visual selection based on temperature
+// Thresholds: >=20°C => sunny, <20°C => cloudy (adjust as desired)
+const sunEl = document.getElementById('sun');
+const cloudEl = document.getElementById('cloud');
+if (sunEl && cloudEl) {
+	const hotThreshold = 20;
+	if (currentTemp >= hotThreshold) {
+		sunEl.classList.add('visible');
+		cloudEl.classList.remove('visible');
+	} else {
+		cloudEl.classList.add('visible');
+		sunEl.classList.remove('visible');
+	}
+}

@@ -17,13 +17,39 @@
             height: 100vh;
         }
         #weather-widget {
-            width: 300px;
-            background: white;
+            width: 320px;
+            background: rgba(255,255,255,0.6);
             border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 18px 20px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
             text-align: center;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            position: relative;
+            overflow: hidden;
         }
+        /* Visual container */
+        #visual {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 90px;
+            height: 90px;
+            pointer-events: none;
+        }
+        svg { width: 100%; height: 100%; display: block; }
+        .visual-element { opacity: 0; transform: translateY(6px) scale(0.98); transition: opacity 400ms ease, transform 600ms cubic-bezier(.2,.8,.2,1); }
+        .visual-element.visible { opacity: 1; transform: translateY(0) scale(1); }
+
+        /* Sun animation */
+        .sun-core { fill: #FFD54A; }
+        .sun-rays { fill: #FFD54A; opacity: 0.85; transform-origin: 50% 50%; animation: spin 12s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Cloud animation */
+        .cloud { fill: #ffffff; stroke: rgba(0,0,0,0.06); stroke-width: 1; }
+        .cloud-wrap { animation: cloud-move 8s linear infinite; }
+        @keyframes cloud-move { 0% { transform: translateX(-10%); } 50% { transform: translateX(6%); } 100% { transform: translateX(-10%); } }
         #temp {
             font-size: 48px;
             font-weight: 300;
@@ -40,6 +66,25 @@
 </head>
 <body>
     <div id="weather-widget">
+        <div id="visual" aria-hidden="true">
+            <!-- Sun SVG -->
+            <svg id="sun" class="visual-element" viewBox="0 0 64 64" role="img">
+                <g class="sun-rays"><circle class="sun-core" cx="32" cy="32" r="12"></circle></g>
+                <g class="sun-rays" style="opacity:0.4">
+                    <g transform="translate(32,32)">
+                        <rect x="-1" y="-20" width="2" height="8" rx="1"></rect>
+                        <rect x="-1" y="12" width="2" height="8" rx="1" transform="rotate(90)"></rect>
+                    </g>
+                </g>
+            </svg>
+            <!-- Cloud SVG -->
+            <svg id="cloud" class="visual-element" viewBox="0 0 64 64" role="img">
+                <g class="cloud-wrap">
+                    <path class="cloud" d="M20 40h28a10 10 0 0 0 0-20 14 14 0 0 0-27-2 8 8 0 0 0-1 22z"></path>
+                </g>
+            </svg>
+        </div>
+
         <div id="temp">--°C</div>
         <div id="details">
             <div id="precip">--% chance of rain</div>
