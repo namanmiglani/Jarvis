@@ -3,8 +3,9 @@ import cv2
 from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout
 from PyQt5.QtGui import QImage, QPixmap, QPainter
 from PyQt5.QtCore import QTimer, Qt
+import requests
 
-import glass  # <-- your new glass module
+import glass
 
 
 class CameraWindow(QWidget):
@@ -57,7 +58,39 @@ class CameraWindow(QWidget):
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.showFullScreen()
 
-        self.showHUD = False
+        self.showRightHUD = True
+        self.showWeather = True
+
+        self.weatherData = None
+        self.fetch_weather()
+
+    def fetch_weather(self):
+        url = "https://api.open-meteo.com/v1/forecast?latitude=49.2593&longitude=-123.2475&hourly=temperature_2m,precipitation_probability,wind_speed_10m&forecast_days=1"
+        r = requests.get(url)
+        if r.status_code == 200:
+            data = r.json()
+            self.weatherData = {
+                "temp": int(data["hourly"]["temperature_2m"][0]),
+                "precip": int(data["hourly"]["precipitation_probability"][0]),
+                "wind": int(data["hourly"]["wind_speed_10m"][0]),
+                "description": "Sunny" if data["hourly"]["temperature_2m"][0] >= 20 else "Cloudy"
+            }
+            self.showWeather = True
+            self.update_frame()  # immediately redraw with weather
+
+
+    def draw_weather_panel(self, painter, points, weather_data):
+        if not weather_data:
+            return
+        
+        content = [
+            f"{weather_data['temp']}°C",
+            f"{weather_data['precip']}% chance of rain",
+            f"{weather_data['wind']} km/h wind",
+            weather_data['description']
+        ]
+        glass.draw_glass_panel(painter, points, content)
+
 
 
     def update_frame(self):
@@ -67,27 +100,21 @@ class CameraWindow(QWidget):
 
         h, w, _ = frame.shape
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        qt_image = QImage(
-            frame_rgb.data,
-            w,
-            h,
-            3 * w,
-            QImage.Format_RGB888
-        )
+        qt_image = QImage(frame_rgb.data, w, h, 3*w, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(qt_image)
 
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        # Draw glass panels
-        if self.showHUD:
-            glass.draw_glass_panel(painter, self.left_panel, "LEFT HUD")
+        if self.showRightHUD:
             glass.draw_glass_panel(painter, self.right_panel, "RIGHT HUD")
 
+        if self.showWeather and self.weatherData:
+            self.draw_weather_panel(painter, self.left_panel, self.weatherData)
 
         painter.end()
         self.label.setPixmap(pixmap)
+
 
     def closeEvent(self, event):
         self.cap.release()
