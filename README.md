@@ -2,6 +2,43 @@
 
 A futuristic voice-activated AI assistant inspired by Iron Man's JARVIS, featuring multimodal capabilities, real-time vision processing, and an immersive HUD overlay.
 
+## 🏗️ Architecture
+
+![Jarvis System Architecture](architecture_diagram.png)
+
+### Backend Stack
+
+- **Framework**: Python asyncio
+- **Agent Orchestration**: LangChain + LangGraph
+- **LLM**:
+  - Reasoning: GPT via OpenRouter
+  - Vision: Qwen VL 32B via OpenRouter
+- **STT**: OpenAI Whisper (local model)
+- **TTS**: ElevenLabs WebSocket streaming
+- **Wake Word**: OpenWakeWord (local, offline)
+- **VAD**: WebRTC Voice Activity Detection
+- **OCR**: EasyOCR
+- **Translation**: Google Translate API
+- **Communication**: WebSocket (websockets library)
+
+### Frontend Stack
+
+- **UI Framework**: PyQt5
+- **Graphics**: OpenCV for camera feed
+- **Rendering**: QPainter for HUD overlay
+- **Animations**: Custom animation system with easing
+- **Communication**: WebSocket client (async)
+
+### Data Flow
+
+```
+User Voice → Wake Word → VAD → Whisper STT →
+Reasoning Agent → LangGraph → Tools →
+Response → ElevenLabs TTS → User
+         ↓
+    HUD Updates (WebSocket)
+```
+
 ## ✨ Features
 
 ### 🎤 Voice Interaction
@@ -148,43 +185,6 @@ Jarvis/
     └── backend_client.py     # WebSocket client
 ```
 
-## 🏗️ Architecture
-
-![Jarvis System Architecture](architecture_diagram.png)
-
-### Backend Stack
-
-- **Framework**: Python asyncio
-- **Agent Orchestration**: LangChain + LangGraph
-- **LLM**:
-  - Reasoning: GPT via OpenRouter
-  - Vision: Qwen VL 32B via OpenRouter
-- **STT**: OpenAI Whisper (local model)
-- **TTS**: ElevenLabs WebSocket streaming
-- **Wake Word**: OpenWakeWord (local, offline)
-- **VAD**: WebRTC Voice Activity Detection
-- **OCR**: EasyOCR
-- **Translation**: Google Translate API
-- **Communication**: WebSocket (websockets library)
-
-### Frontend Stack
-
-- **UI Framework**: PyQt5
-- **Graphics**: OpenCV for camera feed
-- **Rendering**: QPainter for HUD overlay
-- **Animations**: Custom animation system with easing
-- **Communication**: WebSocket client (async)
-
-### Data Flow
-
-```
-User Voice → Wake Word → VAD → Whisper STT →
-Reasoning Agent → LangGraph → Tools →
-Response → ElevenLabs TTS → User
-         ↓
-    HUD Updates (WebSocket)
-```
-
 ## 🔧 Technologies
 
 ### AI & ML
@@ -270,6 +270,6 @@ MIT License - feel free to use and modify!
 
 ## 🙏 Acknowledgments
 
-- Inspired by Iron Man's  
+- Inspired by Iron Man's
 - Built with LangChain and LangGraph
 - Powered by OpenRouter, ElevenLabs, and OpenAI
