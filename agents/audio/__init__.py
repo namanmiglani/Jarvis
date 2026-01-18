@@ -12,6 +12,7 @@ import ssl
 import numpy as np
 import pyaudio
 import whisper
+import webrtcvad
 from openwakeword.model import Model
 from typing import Callable, Optional
 
@@ -40,6 +41,9 @@ class AudioAgent:
         self.is_listening = False
         self.in_conversation = False  # Flag to pause wake word detection during conversations
         
+        # Voice Activity Detection
+        self.vad = webrtcvad.Vad(3)  # Aggressiveness: 0-3 (3 = most aggressive)
+        
         # TTS clients
         self.openai_client = None
         self.elevenlabs_api_key = None
@@ -49,6 +53,7 @@ class AudioAgent:
         self.chunk_size = 1280  # 80ms chunks at 16kHz
         
         logger.info("Audio Agent initialized")
+        logger.info("✅ VAD initialized with aggressiveness: 3")
     
     async def start_wake_word_detection(self):
         """Start listening for wake word 'Hey Jarvis'."""
@@ -209,51 +214,94 @@ class AudioAgent:
     
     async def speech_to_text(self) -> str:
         """
-        Record audio and convert speech to text using Whisper.
+        Record audio using VAD and convert speech to text using Whisper.
+        
+        Uses WebRTC VAD to dynamically detect when user stops speaking.
+        Recording stops after 1.5 seconds of continuous silence or 10 seconds max.
         
         Returns:
             Transcribed text from user speech
         """
         logger.info("🎤 Listening for your command...")
-        print("\n🎤 Listening... (5 seconds)\n")
+        print("\n🎤 Listening... (speak now)\n")
         
         try:
             # Load Whisper model if not already loaded
             if self.whisper_model is None:
                 logger.info("Loading Whisper model (first time only)...")
                 print("⏳ Loading Whisper model... (this may take a moment)")
-                self.whisper_model = whisper.load_model("tiny")  # Fast, ~75MB, 3x faster than small
+                self.whisper_model = whisper.load_model("tiny")  # Fast, ~75MB
                 logger.info("✅ Whisper tiny model loaded")
             
-            # Record audio for 5 seconds
-            RECORD_SECONDS = 5
-            CHUNK = 1024
-            FORMAT = pyaudio.paInt16
-            CHANNELS = 1
-            RATE = 16000  # Whisper expects 16kHz
+            # VAD parameters
+            MAX_RECORDING_TIME = 10  # Maximum seconds to record
+            SILENCE_DURATION_TO_STOP = 1.5  # Seconds of silence before stopping
+            FRAME_DURATION_MS = 30  # Frame duration for VAD (10, 20, or 30ms)
+            SAMPLE_RATE = 16000  # Whisper expects 16kHz
             
-            frames = []
+            # Calculate frame size
+            frame_size = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)
             
             # Open audio stream for recording
             stream = self.pa.open(
-                format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=SAMPLE_RATE,
                 input=True,
-                frames_per_buffer=CHUNK
+                frames_per_buffer=frame_size
             )
             
-            logger.info(f"Recording for {RECORD_SECONDS} seconds...")
+            logger.info("Recording with VAD (will stop after silence)...")
             
-            # Record audio
-            for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-                data = stream.read(CHUNK, exception_on_overflow=False)
-                frames.append(data)
+            # Recording state
+            frames = []
+            silence_frames = 0
+            max_silence_frames = int(SILENCE_DURATION_TO_STOP * 1000 / FRAME_DURATION_MS)
+            max_frames = int(MAX_RECORDING_TIME * 1000 / FRAME_DURATION_MS)
+            speech_detected = False
+            
+            import time
+            start_time = time.time()
+            
+            # Record until silence or max time
+            while len(frames) < max_frames:
+                try:
+                    # Read frame
+                    frame_data = stream.read(frame_size, exception_on_overflow=False)
+                    frames.append(frame_data)
+                    
+                    # Check if frame contains speech
+                    is_speech = self.vad.is_speech(frame_data, SAMPLE_RATE)
+                    
+                    if is_speech:
+                        silence_frames = 0  # Reset silence counter
+                        speech_detected = True
+                    else:
+                        silence_frames += 1
+                        
+                        # Only stop on silence if we've detected speech first
+                        if speech_detected and silence_frames >= max_silence_frames:
+                            recording_time = time.time() - start_time
+                            logger.info(f"✅ Recording stopped after {recording_time:.1f}s (VAD detected silence)")
+                            break
+                
+                except Exception as e:
+                    logger.warning(f"Error reading frame: {e}")
+                    continue
+            
+            # Check if we hit max timeout
+            if len(frames) >= max_frames:
+                logger.info(f"✅ Recording stopped after {MAX_RECORDING_TIME}s (max timeout)")
             
             stream.stop_stream()
             stream.close()
             
-            logger.info("Recording complete, transcribing...")
+            # Check if we recorded anything
+            if not frames:
+                logger.warning("No audio recorded")
+                return ""
+            
+            logger.info(f"Recorded {len(frames)} frames, transcribing...")
             print("⏳ Transcribing...")
             
             # Convert audio data to numpy array

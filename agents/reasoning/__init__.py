@@ -63,7 +63,7 @@ class ReasoningAgent:
             self.llm = ChatOpenAI(
                 api_key=api_key,
                 base_url="https://openrouter.ai/api/v1",
-                model="openai/gpt-oss-20b",  # Fast model optimized for structured tasks
+                model="google/gemini-3-flash-preview",  # Fast model optimized for structured tasks
                 temperature=0.3,  # Lower temperature for consistent classification
                 default_headers={
                     "HTTP-Referer": "https://github.com/jarvis-ai",
