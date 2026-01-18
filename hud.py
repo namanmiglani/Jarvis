@@ -15,6 +15,7 @@ from PyQt5.QtCore import QTimer, Qt
 # Import frontend components
 from frontend.widgets.weather_widget import WeatherWidget
 from frontend.widgets.voice_widget import VoiceWidget
+from frontend.widgets.maps_widget import MapsWidget
 from frontend.graphics.hud_painter import Colors, draw_grid_lines, draw_corner_bracket
 from frontend.backend_client import BackendClient
 from frontend.animations.animator import AnimatedValue, FadeAnimation
@@ -64,6 +65,8 @@ class JarvisHUD(QWidget):
         self.weather_widget = WeatherWidget(50, 150, size=220)
         self.weather_widget.fade.fade_out()  # Start hidden
         
+        self.maps_widget = MapsWidget(50, 400, width=350)
+        
         self.voice_widget = VoiceWidget(
             self.frame_width / 2 - 100,
             self.frame_height / 2 - 100,
@@ -88,6 +91,7 @@ class JarvisHUD(QWidget):
         self.backend_client.on_snapshot_update = self.on_snapshot_update
         self.backend_client.on_transcription = self.on_transcription
         self.backend_client.on_response = self.on_response
+        self.backend_client.on_maps_update = self.on_maps_update
         
         # Connect to backend after event loop starts
         QTimer.singleShot(100, lambda: asyncio.create_task(self.backend_client.connect()))
@@ -131,6 +135,13 @@ class JarvisHUD(QWidget):
         print("HUD Weather update received")
         self.weather_widget.update_data(weather_data)
         self.weather_widget.fade.fade_in()
+
+    def on_maps_update(self, maps_data: dict):
+        """Handle maps update from backend."""
+        print("HUD Maps update received")
+        places = maps_data.get('places', [])
+        if places:
+            self.maps_widget.show_results(places)
     
     def on_transcription(self, text: str):
         """Handle transcription from backend."""
@@ -236,6 +247,7 @@ class JarvisHUD(QWidget):
         
         # Draw widgets
         self.weather_widget.draw(painter)
+        self.maps_widget.draw(painter)
         self.voice_widget.draw(painter)
         self.snapshot_widget.draw(painter)
         

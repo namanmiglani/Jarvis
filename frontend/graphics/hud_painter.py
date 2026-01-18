@@ -255,3 +255,36 @@ def draw_corner_bracket(painter: QPainter, x: float, y: float, size: float,
     elif corner == "br":  # Bottom-right
         painter.drawLine(int(x), int(y), int(x - size), int(y))
         painter.drawLine(int(x), int(y), int(x), int(y - size))
+
+
+def draw_rect_frame(painter: QPainter, x: float, y: float, w: float, h: float, 
+                    color: QColor = None, thickness: int = 2, filled: bool = True, glow: bool = True):
+    """
+    Draw a rectangular frame with optional fill and glow.
+    """
+    if color is None:
+        color = Colors.PRIMARY
+        
+    rect = QRectF(x, y, w, h)
+    
+    # Draw Fill
+    if filled:
+        fill_color = QColor(color)
+        fill_color.setAlpha(30) # Semi-transparent
+        painter.setBrush(QBrush(fill_color))
+    else:
+        painter.setBrush(Qt.NoBrush)
+        
+    # Draw Border
+    pen = QPen(color, thickness)
+    painter.setPen(pen)
+    painter.drawRect(rect)
+    
+    # Draw Glow
+    if glow:
+        glow_color = QColor(color)
+        glow_color.setAlpha(100)
+        pen = QPen(glow_color, thickness + 2)
+        painter.setPen(pen)
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRect(rect)

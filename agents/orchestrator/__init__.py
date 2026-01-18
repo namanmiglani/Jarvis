@@ -163,6 +163,13 @@ class OrchestratorAgent:
                         }
                         await self.hud_server.send_snapshot(snapshot_data)
                 
+                # Send maps data to HUD if available
+                if result.get('intent') == 'distance' and result.get('tool_result'):
+                    if result['tool_result'].get('success'):
+                        await self.hud_server.send_maps({
+                            'places': result['tool_result'].get('places', [])
+                        })
+                
                 # Add to memory
                 self.memory_agent.add_message("assistant", response, result['intent'])
                 

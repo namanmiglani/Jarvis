@@ -36,6 +36,7 @@ class BackendClient:
         self.on_snapshot_update: Optional[Callable] = None
         self.on_transcription: Optional[Callable] = None
         self.on_response: Optional[Callable] = None
+        self.on_maps_update: Optional[Callable] = None
     
     async def connect(self):
         """Connect to backend WebSocket server."""
@@ -84,6 +85,12 @@ class BackendClient:
             logger.info("Snapshot update received")
             if self.on_snapshot_update:
                 self.on_snapshot_update(snapshot_data)
+        
+        elif msg_type == "maps":
+            maps_data = data.get("data")
+            logger.info("Maps update received")
+            if self.on_maps_update:
+                self.on_maps_update(maps_data)
         
         elif msg_type == "transcription":
             text = data.get("text")

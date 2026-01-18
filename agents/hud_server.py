@@ -153,6 +153,19 @@ class HUDServer:
             "data": snapshot_data
         })
         logger.info("Sent snapshot data to HUD")
+
+    async def send_maps(self, places_data: dict):
+        """
+        Send maps data to HUD.
+        
+        Args:
+            places_data: List of places
+        """
+        await self.broadcast({
+            "type": "maps",
+            "data": places_data
+        })
+        logger.info("Sent maps data to HUD")
     
     async def stop(self):
         """Stop the WebSocket server."""

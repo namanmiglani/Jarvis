@@ -100,7 +100,7 @@ class MapsTool:
         # Using locationBias to prefer results near the user
         payload = {
             "textQuery": query,
-            "maxResultCount": 5,
+            "maxResultCount": 3,
             "locationBias": {
                 "circle": {
                     "center": {
@@ -131,28 +131,39 @@ class MapsTool:
                     }
 
                 # 3. Process results to find the strictly nearest one
-                # (API 'locationBias' doesn't guarantee strict distance sort)
+                # AND prepare the full list for the HUD
                 nearest_place = None
                 min_dist = float('inf')
+                
+                processed_places = []
 
                 for place in places:
                     p_lat = place["location"]["latitude"]
                     p_lon = place["location"]["longitude"]
                     dist = self._calculate_distance(lat, lon, p_lat, p_lon)
                     
+                    place_data = {
+                        "name": place["displayName"]["text"],
+                        "address": place.get("formattedAddress", "Unknown Address"),
+                        "rating": place.get("rating", "N/A"),
+                        "distance_km": round(dist, 2),
+                        "distance_miles": round(dist * 0.621371, 2)
+                    }
+                    
+                    processed_places.append(place_data)
+                    
                     if dist < min_dist:
                         min_dist = dist
-                        nearest_place = {
-                            "name": place["displayName"]["text"],
-                            "address": place.get("formattedAddress", "Unknown Address"),
-                            "distance_km": round(dist, 2),
-                            "distance_miles": round(dist * 0.621371, 2)
-                        }
+                        nearest_place = place_data
+                
+                # Sort processed places by distance
+                processed_places.sort(key=lambda x: x["distance_km"])
 
                 return {
                     "success": True,
                     "found": True,
                     "place": nearest_place,
+                    "places": processed_places,
                     "user_city": location.get("city")
                 }
 
