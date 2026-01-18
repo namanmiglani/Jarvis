@@ -1,4 +1,4 @@
-# 🤖 Jarvis AI Assistant
+# 🤖 Jarviz AI Assistant
 
 A futuristic voice-activated AI assistant inspired by Iron Man's JARVIS, featuring multimodal capabilities, real-time vision processing, and an immersive HUD overlay.
 
@@ -65,9 +65,9 @@ A futuristic voice-activated AI assistant inspired by Iron Man's JARVIS, featuri
    - `ELEVENLABS_API_KEY`: For Text-to-Speech
    - `WEATHER_API_KEY`: For weather data (WeatherAPI.com)
 
-### Running Jarvis
+### Running Jarviz
 
-**Terminal 1 - Backend (Jarvis Agent):**
+**Terminal 1 - Backend (Jarviz Agent):**
 
 ```bash
 python main.py
@@ -85,7 +85,7 @@ python hud.py
 
 **Activation:**
 
-- "Hey Jarvis" - Wake up Jarvis
+- "Hey Jarvis" - Wake up Jarviz
 
 **Weather:**
 
@@ -270,6 +270,6 @@ MIT License - feel free to use and modify!
 
 ## 🙏 Acknowledgments
 
-- Inspired by Iron Man's JARVIS
+- Inspired by Iron Man's  
 - Built with LangChain and LangGraph
 - Powered by OpenRouter, ElevenLabs, and OpenAI
