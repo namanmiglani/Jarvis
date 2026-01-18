@@ -10,12 +10,16 @@ openwakeword==0.6.0  # Open source, no API key needed!
 pyaudio==0.2.14  # Required for microphone access
 
 # ============================================
-# PHASE 2: Speech-to-Text (Week 2)
+# PHASE 2: Speech-to-Text & Text-to-Speech (Week 2)
 # ============================================
 
 # Speech Recognition
 openai-whisper==20231117  # Local STT
 numpy>=1.21.6  # Already installed by openwakeword
+
+# Text-to-Speech
+openai>=1.0.0  # OpenAI TTS (simpler than Google Cloud)
+sounddevice>=0.4.6  # Required for OpenAI LocalAudioPlayer
 
 # ============================================
 # PHASE 2+: Uncomment as needed

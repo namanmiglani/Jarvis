@@ -205,10 +205,45 @@ class AudioAgent:
             return ""
     
     async def text_to_speech(self, text: str):
-        """Convert text to speech (Phase 2)."""
+        """
+        Convert text to speech using OpenAI TTS and play it.
+        
+        Args:
+            text: Text to convert to speech
+        """
         logger.info(f"Speaking: {text}")
-        # TODO: Implement Google Cloud TTS in Phase 2
-        pass
+        
+        try:
+            from openai import AsyncOpenAI
+            from openai.helpers import LocalAudioPlayer
+            import os
+            
+            # Initialize OpenAI client if not already done
+            if not hasattr(self, 'openai_client'):
+                api_key = os.getenv('OPENAI_API_KEY')
+                if not api_key:
+                    raise ValueError("OPENAI_API_KEY not found in environment variables")
+                self.openai_client = AsyncOpenAI(api_key=api_key)
+                logger.info("✅ OpenAI TTS client initialized")
+            
+            # Generate and play speech with streaming
+            logger.info("Generating speech with OpenAI TTS...")
+            
+            async with self.openai_client.audio.speech.with_streaming_response.create(
+                model="gpt-4o-mini-tts",
+                voice="onyx",  # Deep, sophisticated voice (most JARVIS-like)
+                input=text,
+                instructions="Speak in a calm, sophisticated, and professional British accent like an advanced AI assistant. Use a measured pace with subtle warmth.",
+                response_format="pcm"
+            ) as response:
+                await LocalAudioPlayer().play(response)
+            
+            logger.info("✅ Audio playback complete")
+            
+        except Exception as e:
+            logger.error(f"❌ Error in text-to-speech: {e}")
+            logger.warning("Falling back to console output")
+            print(f"\n🔊 Jarvis: {text}\n")
     
     async def stop(self):
         """Stop wake word detection and cleanup resources."""

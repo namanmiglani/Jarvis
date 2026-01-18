@@ -51,12 +51,17 @@ class OrchestratorAgent:
             print(f"📝 You said: \"{transcription}\"")
             print("="*50 + "\n")
             
+            # Simple acknowledgment instead of echoing
+            response = "Understood. I'm processing your request."
+            await self.audio_agent.text_to_speech(response)
+            
             # TODO Phase 3: Send to Reasoning Agent for intent classification
-            # TODO Phase 4+: Execute appropriate action
+            # TODO Phase 4+: Execute appropriate action and respond with actual answer
             
             logger.info(f"Transcription received: {transcription}")
         else:
             print("\n⚠️  No speech detected or transcription failed\n")
+            await self.audio_agent.text_to_speech("I didn't catch that. Please try again.")
             logger.warning("No transcription received")
     
     async def process_input(self, source: str, data: Dict[str, Any]):
