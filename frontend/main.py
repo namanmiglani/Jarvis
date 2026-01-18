@@ -11,6 +11,7 @@ if sys.platform.startswith("win"):
 else:
     cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
+showGlass = True
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
@@ -35,18 +36,20 @@ while True:
 
 
     tilted_points = np.float32([
-        [400, 50],   # Top Left
-        [580, 120],  # Top Right (Pushed down and in)
-        [580, 380],  # Bottom Right (Pushed up and in)
-        [400, 450]   # Bottom Left
+        [100, 100],   # Top Left
+        [280, 170],  # Top Right (Pushed down and in)
+        [280, 330],  # Bottom Right (Pushed up and in)
+        [100, 400]   # Bottom Left
     ])
 
     # Recompute expensive blur occasionally
     if cached_glass is None or frame_count % cache_interval == 0:
         cached_glass = glass.apply_tilted_glass(frame, tilted_points)
 
-    cv2.imshow("Real-Time Python AR Overlay", cached_glass)
-    
+    if (showGlass):
+        cv2.imshow("Real-Time Python AR Overlay", cached_glass)
+    else:
+        cv2.imshow("Real-Time Python AR Overlay", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
