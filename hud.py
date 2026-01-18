@@ -12,12 +12,12 @@ from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QFont
 from PyQt5.QtCore import QTimer, Qt
 
-# Import widgets and client
-from widgets.weather_widget import WeatherWidget
-from widgets.voice_widget import VoiceWidget
-from graphics.hud_painter import Colors, draw_grid_lines, draw_glow_text, draw_corner_bracket
-from backend_client import BackendClient
-from animations.animator import AnimatedValue, FadeAnimation
+# Import frontend components
+from frontend.widgets.weather_widget import WeatherWidget
+from frontend.widgets.voice_widget import VoiceWidget
+from frontend.graphics.hud_painter import Colors, draw_grid_lines, draw_corner_bracket
+from frontend.backend_client import BackendClient
+from frontend.animations.animator import AnimatedValue, FadeAnimation
 
 
 class JarvisHUD(QWidget):
@@ -26,7 +26,7 @@ class JarvisHUD(QWidget):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("JARVIS HUD")
+        self.setWindowTitle("JARVIZ HUD")
         
         # UI setup
         self.label = QLabel()
@@ -177,7 +177,7 @@ class JarvisHUD(QWidget):
             font = QFont("Orbitron", 24, QFont.Bold)
             painter.setFont(font)
             painter.setPen(Colors.PRIMARY)
-            painter.drawText(50, 60, "J.A.R.V.I.S.")
+            painter.drawText(50, 60, "J.A.R.V.I.Z.")
             
             # Draw status indicator
             font = QFont("Orbitron", 10)
@@ -208,7 +208,7 @@ class JarvisHUD(QWidget):
             painter.setFont(font)
             painter.setPen(Colors.ACCENT)
             connection_status = "CONNECTED" if self.backend_client.is_connected() else "DISCONNECTED"
-            painter.drawText(w - 250, h - 30, f"JARVIS v1.0 | {connection_status}")
+            painter.drawText(w - 250, h - 30, f"JARVIZ v1.0 | {connection_status}")
             
             painter.setOpacity(1.0)
         

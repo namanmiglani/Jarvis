@@ -1,168 +1,104 @@
 # Jarvis AI Assistant
 
-> A voice-activated AI assistant with calendar management, live translation, and weather queries using a multiagent architecture.
+A futuristic voice-activated AI assistant with Iron Man-style HUD overlay.
 
-## 🎯 Features
+## Features
 
-- **Wake Word Detection**: "Hey Jarvis" activation
-- **Calendar Management**: Add/query Google Calendar events with intelligent follow-ups
-- **Live Translation**: OCR text translation and speech-to-text translation
-- **Weather Queries**: Current conditions and forecasts
+- 🎤 **Wake Word Detection**: Activate with "Hey Jarvis"
+- 🗣️ **Voice Activity Detection**: Automatically detects when you stop speaking
+- 🧠 **LangChain + LangGraph**: Intelligent intent classification and tool orchestration
+- 🌡️ **Weather Tool**: Real-time weather information
+- 🎨 **Futuristic HUD**: Iron Man-style overlay with animated widgets
+- 💬 **Multi-turn Conversations**: Natural conversation flow with context awareness
 
-## 🚀 Quick Start
+## Setup
 
-### 1. Prerequisites
+1. **Install dependencies:**
 
-- Python 3.11+
-- Google Cloud account (for Calendar, Translate, Vision APIs)
-- OpenRouter account (for Gemini LLM)
-- OpenWeatherMap account (for weather data)
-- Porcupine account (for wake word detection)
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### 2. Installation
+2. **Configure environment variables:**
 
-```bash
-# Clone the repository
-cd /Users/harshamin/Desktop/Jarvis
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your API keys
+   ```
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+3. **Required API Keys:**
+   - `OPENAI_API_KEY`: For TTS (Text-to-Speech)
+   - `OPENROUTER_API_KEY`: For LLM (Gemini via OpenRouter)
+   - `WEATHER_API_KEY`: For weather data (WeatherAPI.com)
 
-# Install dependencies
-pip install -r requirements.txt
-```
+## Usage
 
-### 3. Configuration
-
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env and add your API keys
-nano .env  # or use your preferred editor
-```
-
-### 4. Google Cloud Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project
-3. Enable these APIs:
-   - Google Calendar API
-   - Cloud Translation API
-   - Cloud Vision API
-4. Create OAuth 2.0 credentials for Calendar
-5. Download credentials and save to `config/google_calendar_credentials.json`
-
-### 5. Get API Keys
-
-- **OpenRouter**: Sign up at [openrouter.ai](https://openrouter.ai/)
-- **OpenWeatherMap**: Sign up at [openweathermap.org](https://openweathermap.org/api)
-- **Porcupine**: Sign up at [picovoice.ai](https://console.picovoice.ai/)
-
-### 6. Run Jarvis
+### Run Backend (Jarvis Agent)
 
 ```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Run the main application
 python main.py
 ```
 
-## 📁 Project Structure
+### Run Frontend (HUD Overlay)
+
+In a separate terminal:
+
+```bash
+python hud.py
+```
+
+## Controls
+
+**HUD Controls:**
+
+- `ESC` or `Q`: Exit HUD
+
+**Voice Commands:**
+
+- "Hey Jarvis" - Activate
+- "What's the weather in [city]?" - Get weather
+- Ask any general question
+- Natural conversation with followup questions
+
+## Project Structure
 
 ```
 Jarvis/
-├── agents/
-│   ├── orchestrator/      # Central coordinator
-│   ├── audio/            # Wake word, STT, TTS
-│   ├── vision/           # Screen capture, OCR
-│   ├── reasoning/        # LLM, intent classification
-│   ├── tool_executor/    # API integrations
-│   └── memory/           # Conversation context
-├── config/               # Configuration files
-├── logs/                 # Application logs
-├── data/                 # Local data storage
-├── .env                  # Environment variables (not committed)
-├── .env.example          # Environment template
-├── requirements.txt      # Python dependencies
-├── main.py              # Application entry point
-└── README.md            # This file
+├── main.py                 # Backend entry point
+├── hud.py                  # HUD overlay entry point
+├── requirements.txt        # All dependencies
+├── .env                    # API keys (create from .env.example)
+├── agents/                 # Backend agents
+│   ├── audio/             # Audio I/O (STT, TTS, wake word)
+│   ├── reasoning/         # Intent classification & LLM
+│   ├── memory/            # Conversation history
+│   ├── tools/             # Weather and other tools
+│   ├── graph/             # LangGraph workflow
+│   ├── orchestrator/      # Main orchestration
+│   └── hud_server.py      # WebSocket server for HUD
+└── frontend/              # HUD components
+    ├── widgets/           # Weather, voice widgets
+    ├── graphics/          # Drawing utilities
+    ├── animations/        # Animation system
+    └── backend_client.py  # WebSocket client
 ```
 
-## 🎤 Usage Examples
+## Architecture
 
-### Calendar Management
+- **Backend**: Python async with LangChain/LangGraph
+- **Frontend**: PyQt5 with OpenCV for camera feed
+- **Communication**: WebSocket for real-time state sync
+- **LLM**: Gemini via OpenRouter
+- **STT**: OpenAI Whisper (local)
+- **TTS**: OpenAI TTS
+- **Wake Word**: OpenWakeWord (local, no API needed)
 
-```
-You: "Hey Jarvis, remind me to take my creatine"
-Jarvis: "When would you like me to remind you?"
-You: "Every day at 8 AM"
-Jarvis: "Done. Daily reminder created."
-```
+## Technologies
 
-### Translation
-
-```
-You: "Hey Jarvis, translate this text"
-Jarvis: *captures screen* "I detected Spanish. The text says: 'Hello, how are you today?'"
-```
-
-### Weather
-
-```
-You: "Hey Jarvis, how's the weather?"
-Jarvis: "It's currently 72°F and sunny in San Francisco."
-```
-
-## 🛠️ Development
-
-### Running Tests
-
-```bash
-pytest
-```
-
-### Code Formatting
-
-```bash
-black .
-pylint agents/
-```
-
-## 📊 Cost Estimates
-
-With moderate usage (~1000 requests/month):
-
-- OpenRouter (Gemini): ~$2-3/month
-- Google Translate: ~$1-2/month
-- Google Vision (OCR): ~$1/month
-- OpenWeatherMap: Free tier
-- Porcupine: Free tier
-
-**Total: ~$5-10/month**
-
-## 🔐 Privacy & Security
-
-- All audio processing happens locally
-- Screenshots are temporary and deleted after OCR
-- API keys stored in `.env` (never committed)
-- OAuth 2.0 for Google Calendar access
-- Wake word required (no always-on listening)
-
-## 📝 License
-
-MIT License - See LICENSE file for details
-
-## 🤝 Contributing
-
-Contributions welcome! Please open an issue or submit a pull request.
-
-## 📚 Documentation
-
-See [PROJECT_PLAN.md](PROJECT_PLAN.md) for detailed architecture and implementation roadmap.
-
----
-
-**Built with ❤️ using Python, Gemini, and a multiagent architecture**
+- LangChain & LangGraph for agent orchestration
+- OpenAI Whisper for speech-to-text
+- OpenAI TTS for text-to-speech
+- OpenWakeWord for wake word detection
+- WebRTC VAD for voice activity detection
+- PyQt5 for HUD interface
+- WebSocket for real-time communication
