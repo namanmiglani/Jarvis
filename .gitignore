@@ -12,6 +12,7 @@ env/
 ENV/
 .venv
 
+node_modules
 # Google credentials
 config/google_calendar_credentials.json
 config/google_calendar_token.json
