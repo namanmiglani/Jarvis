@@ -60,6 +60,7 @@ Response → ElevenLabs TTS → User
 2. **👁️ Vision Description**: Multimodal LLM (Qwen VL) describes camera surroundings
 3. **📸 Snapshot Management**: Save and retrieve camera snapshots with HUD display
 4. **🌍 OCR Translation**: Extract text from camera and translate to any language
+5. **📍 Proximity Search**: Find distance to nearest landmarks using Google Maps
 
 ### 🎨 Futuristic HUD
 
@@ -144,6 +145,11 @@ python hud.py
 - "Translate this to English"
 - "What does this say in Spanish?"
 - "Translate to French"
+
+**Maps / Proximity:**
+
+- "How close is the nearest Starbucks?"
+- "Where is the nearest gas station?"
 
 ### HUD Controls
 
@@ -239,6 +245,12 @@ Uses Qwen VL 32B to analyze camera frames and provide detailed descriptions of s
 - Automatic followup question handling
 - Conversation memory for natural flow
 - Intent classification with confidence scoring
+
+### 5. 📍 Proximity Search
+
+- **Geo-Location**: Auto-detects user location via IP
+- **Google Places API**: Finds nearest landmarks (Starbucks, Gas Stations, etc.)
+- **Distance Calculation**: Provides exact distance and address
 
 ## 🐛 Troubleshooting
 

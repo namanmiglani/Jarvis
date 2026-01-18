@@ -36,7 +36,7 @@ class ConversationState(TypedDict):
 class JarvisGraph:
     """LangGraph workflow for Jarvis agent orchestration."""
     
-    def __init__(self, reasoning_agent, memory_agent, weather_tool, vision_tool=None, snapshot_tool=None, translation_tool=None):
+    def __init__(self, reasoning_agent, memory_agent, weather_tool, vision_tool=None, snapshot_tool=None, translation_tool=None, maps_tool=None):
         """Initialize graph with agents and tools."""
         self.reasoning_agent = reasoning_agent
         self.memory_agent = memory_agent
@@ -44,6 +44,7 @@ class JarvisGraph:
         self.vision_tool = vision_tool
         self.snapshot_tool = snapshot_tool
         self.translation_tool = translation_tool
+        self.maps_tool = maps_tool
         
         # Build the graph
         self.workflow = self._build_graph()
@@ -171,6 +172,23 @@ class JarvisGraph:
                     'error': 'Translation tool not available'
                 }
         
+        elif intent == "distance":
+            if self.maps_tool:
+                logger.info("Executing maps tool")
+                entities = state.get("entities", {})
+                query = entities.get("query", "")
+                if not query:
+                    # Fallback if no query extracted
+                    query = "restaurant" 
+                
+                maps_data = await self.maps_tool.get_nearest_place(query)
+                state["tool_result"] = maps_data
+            else:
+                state["tool_result"] = {
+                    'success': False,
+                    'error': 'Maps tool not available'
+                }
+        
         else:
             # Other tools
             state["tool_result"] = {
@@ -199,6 +217,8 @@ class JarvisGraph:
                 response = self.snapshot_tool.format_retrieve_response(tool_result)
             elif state["intent"] == "translate":
                 response = self.translation_tool.format_translation_response(tool_result)
+            elif state["intent"] == "distance":
+                response = self.maps_tool.format_response(tool_result)
             else:
                 response = tool_result.get('error', 'Unable to process request')
             
