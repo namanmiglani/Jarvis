@@ -40,6 +40,10 @@ class AudioAgent:
         self.is_listening = False
         self.in_conversation = False  # Flag to pause wake word detection during conversations
         
+        # TTS clients
+        self.openai_client = None
+        self.elevenlabs_api_key = None
+        
         # Audio settings
         self.sample_rate = 16000
         self.chunk_size = 1280  # 80ms chunks at 16kHz
@@ -299,7 +303,7 @@ class AudioAgent:
             
             async with self.openai_client.audio.speech.with_streaming_response.create(
                 model="gpt-4o-mini-tts",
-                voice="ash",  # Deep, sophisticated voice (most JARVIS-like)
+                voice="cedar",
                 input=text,
                 instructions="Speak in a sophisticated, professional British accent like an advanced AI assistant.",
                 response_format="pcm"
@@ -310,6 +314,99 @@ class AudioAgent:
             
         except Exception as e:
             logger.error(f"❌ Error in text-to-speech: {e}")
+            logger.warning("Falling back to console output")
+            print(f"\n🔊 Jarvis: {text}\n")
+    
+    async def text_to_speech_elevenlabs(self, text: str, voice_id: str = "JBFqnCBsd6RMkjVDRZzb"):
+        """
+        Convert text to speech using ElevenLabs WebSocket API and play it.
+        
+        Args:
+            text: Text to convert to speech
+            voice_id: ElevenLabs voice ID (default: Rachel - natural, expressive)
+        """
+        logger.info(f"Speaking with ElevenLabs: {text}")
+        
+        try:
+            import websockets
+            import json
+            import base64
+            import os
+            
+            # Get API key
+            if not self.elevenlabs_api_key:
+                self.elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
+                if not self.elevenlabs_api_key:
+                    raise ValueError("ELEVENLABS_API_KEY not found in environment variables")
+            
+            # WebSocket URL - using pcm_44100 for CD-quality audio
+            uri = f"wss://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream-input?model_id=eleven_turbo_v2_5&output_format=pcm_24000"
+            
+            # Initialize PyAudio for playback (44.1kHz for higher quality)
+            stream = self.pa.open(
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=24000,  # CD-quality sample rate
+                output=True,
+                frames_per_buffer=2048  # Larger buffer for 44.1kHz
+            )
+            
+            logger.info("Connecting to ElevenLabs WebSocket...")
+            
+            # Create SSL context that doesn't verify certificates (macOS issue)
+            import ssl
+            ssl_context = ssl._create_unverified_context()
+            
+            async with websockets.connect(uri, ssl=ssl_context) as websocket:
+                # Send initial connection message with API key
+                init_message = {
+                    "text": " ",
+                    "voice_settings": {
+                        "stability": 0.5,
+                        "similarity_boost": 0.8,
+                        "speed": 1.0,
+                    },
+                    "xi-api-key": self.elevenlabs_api_key
+                }
+                await websocket.send(json.dumps(init_message))
+                
+                # Send the actual text
+                text_message = {
+                    "text": text + " ",
+                    "try_trigger_generation": True
+                }
+                await websocket.send(json.dumps(text_message))
+                
+                # Send flush to ensure all audio is generated
+                flush_message = {
+                    "text": "",
+                }
+                await websocket.send(json.dumps(flush_message))
+                
+                logger.info("Receiving and playing audio...")
+                
+                # Receive and play audio chunks
+                async for message in websocket:
+                    data = json.loads(message)
+                    
+                    # Check if this is the final message
+                    if data.get("isFinal"):
+                        logger.info("✅ ElevenLabs audio generation complete")
+                        break
+                    
+                    # Decode and play audio chunk
+                    if "audio" in data:
+                        audio_chunk = base64.b64decode(data["audio"])
+                        stream.write(audio_chunk)
+            
+            # Cleanup
+            stream.stop_stream()
+            stream.close()
+            
+            logger.info("✅ Audio playback complete")
+            
+        except Exception as e:
+            logger.error(f"❌ Error in ElevenLabs TTS: {e}")
             logger.warning("Falling back to console output")
             print(f"\n🔊 Jarvis: {text}\n")
     
