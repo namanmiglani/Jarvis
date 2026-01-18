@@ -34,7 +34,7 @@ class OrchestratorAgent:
         from agents.audio import AudioAgent
         from agents.reasoning import ReasoningAgent, Intent
         from agents.memory import MemoryAgent
-        from agents.tools import WeatherTool, VisionTool
+        from agents.tools import WeatherTool, VisionTool, SnapshotTool
         from agents.graph import JarvisGraph
         from agents.hud_server import HUDServer
         from agents.camera_manager import CameraManager
@@ -43,18 +43,21 @@ class OrchestratorAgent:
         self.memory_agent = MemoryAgent()
         self.weather_tool = WeatherTool()
         self.vision_tool = VisionTool()
+        self.snapshot_tool = SnapshotTool()
         
         # Initialize camera manager
         self.camera_manager = CameraManager()
         self.camera_manager.start()
         self.vision_tool.camera_manager = self.camera_manager
+        self.snapshot_tool.camera_manager = self.camera_manager
         
         # Initialize LangGraph workflow
         self.graph = JarvisGraph(
             reasoning_agent=self.reasoning_agent,
             memory_agent=self.memory_agent,
             weather_tool=self.weather_tool,
-            vision_tool=self.vision_tool
+            vision_tool=self.vision_tool,
+            snapshot_tool=self.snapshot_tool
         )
         
         # Initialize HUD server
@@ -139,9 +142,15 @@ class OrchestratorAgent:
                 
                 logger.info(f"Final response: {response}")
                 
-                # If weather intent, send weather data to HUD
-                if result['intent'] == 'weather' and result.get('tool_result'):
-                    await self.hud_server.send_weather(result['tool_result'])
+                # Send weather data to HUD if available
+                if result.get('intent') == 'weather' and result.get('tool_result'):
+                    if result['tool_result'].get('success'):
+                        await self.hud_server.send_weather(result['tool_result'])
+                
+                # Send snapshot data to HUD if available
+                if result.get('intent') == 'snapshot_retrieve' and result.get('tool_result'):
+                    if result['tool_result'].get('success'):
+                        await self.hud_server.send_snapshot(result['tool_result'])
                 
                 # Add to memory
                 self.memory_agent.add_message("assistant", response, result['intent'])

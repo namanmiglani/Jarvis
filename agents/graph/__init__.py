@@ -36,12 +36,13 @@ class ConversationState(TypedDict):
 class JarvisGraph:
     """LangGraph workflow for Jarvis agent orchestration."""
     
-    def __init__(self, reasoning_agent, memory_agent, weather_tool, vision_tool=None):
+    def __init__(self, reasoning_agent, memory_agent, weather_tool, vision_tool=None, snapshot_tool=None):
         """Initialize graph with agents and tools."""
         self.reasoning_agent = reasoning_agent
         self.memory_agent = memory_agent
         self.weather_tool = weather_tool
         self.vision_tool = vision_tool
+        self.snapshot_tool = snapshot_tool
         
         # Build the graph
         self.workflow = self._build_graph()
@@ -132,8 +133,30 @@ class JarvisGraph:
                     'error': 'Vision tool not available'
                 }
         
+        elif intent == "snapshot_save":
+            if self.snapshot_tool:
+                logger.info("Executing snapshot save tool")
+                snapshot_data = await self.snapshot_tool.save_snapshot()
+                state["tool_result"] = snapshot_data
+            else:
+                state["tool_result"] = {
+                    'success': False,
+                    'error': 'Snapshot tool not available'
+                }
+        
+        elif intent == "snapshot_retrieve":
+            if self.snapshot_tool:
+                logger.info("Executing snapshot retrieve tool")
+                snapshot_data = await self.snapshot_tool.get_latest_snapshot()
+                state["tool_result"] = snapshot_data
+            else:
+                state["tool_result"] = {
+                    'success': False,
+                    'error': 'Snapshot tool not available'
+                }
+        
         else:
-            # Other tools - Phase 5
+            # Other tools
             state["tool_result"] = {
                 'success': False,
                 'error': f'Tool for {intent} not yet implemented'
@@ -154,6 +177,10 @@ class JarvisGraph:
                 response = self.weather_tool.format_weather_response(tool_result)
             elif state["intent"] == "vision":
                 response = self.vision_tool.format_vision_response(tool_result)
+            elif state["intent"] == "snapshot_save":
+                response = self.snapshot_tool.format_save_response(tool_result)
+            elif state["intent"] == "snapshot_retrieve":
+                response = self.snapshot_tool.format_retrieve_response(tool_result)
             else:
                 response = tool_result.get('error', 'Unable to process request')
             

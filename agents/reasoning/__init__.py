@@ -22,6 +22,8 @@ class Intent(str, Enum):
     SMALL_TALK = "small_talk"
     GENERAL_QUESTION = "general_question"
     VISION = "vision"  # Describe camera surroundings
+    SNAPSHOT_SAVE = "snapshot_save"  # Save camera snapshot
+    SNAPSHOT_RETRIEVE = "snapshot_retrieve"  # Retrieve saved snapshot
     UNKNOWN = "unknown"
 
 
@@ -95,6 +97,8 @@ class ReasoningAgent:
 **Supported Intents:**
 - weather: Questions about weather conditions
 - vision: Describe camera surroundings, "what do you see", "describe my surroundings"
+- snapshot_save: Save a camera snapshot, "save a snapshot", "take a picture"
+- snapshot_retrieve: Retrieve saved snapshot, "show my snapshot", "pull up my snapshot"
 - general_question: General knowledge questions
 - small_talk: Greetings, how are you, casual conversation
 - unknown: Cannot determine intent
@@ -121,6 +125,7 @@ Analyze the user's message and return a structured JSON response with:
   * Have all required information for tool execution
   * User says goodbye/thank you (respond politely in 'response' field)
   * VISION requests - camera is always available, execute immediately
+  * SNAPSHOT requests - camera is always available, execute immediately
 
 **Examples:**
 
