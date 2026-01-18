@@ -98,16 +98,20 @@ class OrchestratorAgent:
                         classification.entities,
                         transcription
                     )
+                    # Don't end conversation after small talk - ask if they need anything else
+                    should_continue = True
                 elif classification.intent == Intent.GENERAL_QUESTION:
                     response = await self.reasoning_agent.generate_response(
                         classification.intent,
                         classification.entities,
                         transcription
                     )
+                    should_continue = False  # End after answering question
                 else:
                     # For tool-based intents (weather, calendar, translation)
                     response = f"Understood. I'll help you with that {classification.intent.value} request."
                     # TODO Phase 4: Call appropriate tool executor
+                    should_continue = False  # End after acknowledging
                 
                 logger.info(f"Response: {response}")
                 
@@ -117,9 +121,17 @@ class OrchestratorAgent:
                 # Speak the response
                 await self.audio_agent.text_to_speech(response)
                 
-                # End conversation after providing answer
-                logger.info(f"Transcription received: {transcription}")
-                break  # Exit conversation loop
+                # Check if we should continue or end
+                if should_continue and turn < max_turns - 1:
+                    # For small talk, continue listening
+                    logger.info("Continuing conversation after small talk...")
+                    continue
+                else:
+                    # End conversation after providing answer
+                    logger.info(f"Transcription received: {transcription}")
+                    # Add delay to prevent wake word re-trigger
+                    await asyncio.sleep(2)
+                    break  # Exit conversation loop
     
     async def process_input(self, source: str, data: Dict[str, Any]):
         """Process input from any agent."""

@@ -235,7 +235,7 @@ class AudioAgent:
                 model="gpt-4o-mini-tts",
                 voice="onyx",  # Deep, sophisticated voice (most JARVIS-like)
                 input=text,
-                instructions="Speak in a calm, sophisticated, and professional British accent like an advanced AI assistant. Use a measured pace with subtle warmth.",
+                instructions="Speak in a sophisticated, professional British accent like an advanced AI assistant.",
                 response_format="pcm"
             ) as response:
                 await LocalAudioPlayer().play(response)
