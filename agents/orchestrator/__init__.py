@@ -132,7 +132,7 @@ class OrchestratorAgent:
                 
                 # End conversation and return to wake word detection
                 logger.info(f"Conversation complete. Returning to wake word detection.")
-                await asyncio.sleep(5)  # Prevent immediate re-trigger
+                await self.audio_agent.resume_wake_word_detection()
                 break  # Exit conversation loop
     
     async def process_input(self, source: str, data: Dict[str, Any]):

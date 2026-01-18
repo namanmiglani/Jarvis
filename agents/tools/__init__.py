@@ -1,7 +1,7 @@
 """
 Weather Tool
 
-Fetches weather information using OpenWeatherMap API.
+Fetches weather information using WeatherAPI.com.
 """
 
 import logging
@@ -17,10 +17,10 @@ class WeatherTool:
     
     def __init__(self):
         """Initialize Weather Tool with API key."""
-        self.api_key = os.getenv('OPENWEATHER_API_KEY')
+        self.api_key = os.getenv('WEATHER_API_KEY')
         if not self.api_key or self.api_key == 'your-api-key-here':
-            logger.warning("⚠️  OPENWEATHER_API_KEY not set. Weather queries will fail.")
-        self.base_url = "https://api.openweathermap.org/data/2.5/weather"
+            logger.warning("⚠️  WEATHER_API_KEY not set. Weather queries will fail.")
+        self.base_url = "http://api.weatherapi.com/v1/current.json"
         logger.info("Weather Tool initialized")
     
     async def get_weather(self, location: str) -> Dict[str, Any]:
@@ -28,7 +28,7 @@ class WeatherTool:
         Get current weather for a location.
         
         Args:
-            location: City name or "City, Country Code"
+            location: City name or "City, Country"
             
         Returns:
             Dictionary with weather information or error
@@ -38,9 +38,9 @@ class WeatherTool:
         try:
             # Make API request
             params = {
+                'key': self.api_key,
                 'q': location,
-                'appid': self.api_key,
-                'units': 'metric'  # Celsius
+                'aqi': 'no'
             }
             
             response = requests.get(self.base_url, params=params, timeout=10)
@@ -50,13 +50,16 @@ class WeatherTool:
             
             # Extract relevant information
             weather_info = {
-                'location': data['name'],
-                'country': data['sys']['country'],
-                'temperature': round(data['main']['temp']),
-                'feels_like': round(data['main']['feels_like']),
-                'description': data['weather'][0]['description'],
-                'humidity': data['main']['humidity'],
-                'wind_speed': round(data['wind']['speed'] * 3.6, 1),  # Convert m/s to km/h
+                'location': data['location']['name'],
+                'region': data['location']['region'],
+                'country': data['location']['country'],
+                'temperature': round(data['current']['temp_c']),
+                'feels_like': round(data['current']['feelslike_c']),
+                'condition': data['current']['condition']['text'],
+                'humidity': data['current']['humidity'],
+                'wind_kph': round(data['current']['wind_kph'], 1),
+                'wind_dir': data['current']['wind_dir'],
+                'is_day': data['current']['is_day'] == 1,
                 'success': True
             }
             
@@ -64,7 +67,7 @@ class WeatherTool:
             return weather_info
             
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
+            if e.response.status_code == 400:
                 logger.error(f"❌ Location not found: {location}")
                 return {
                     'success': False,
@@ -103,15 +106,23 @@ class WeatherTool:
             return weather_data.get('error', 'Unable to fetch weather information.')
         
         location = weather_data['location']
+        region = weather_data['region']
         country = weather_data['country']
         temp = weather_data['temperature']
         feels_like = weather_data['feels_like']
-        description = weather_data['description']
+        condition = weather_data['condition']
         humidity = weather_data['humidity']
-        wind = weather_data['wind_speed']
+        wind = weather_data['wind_kph']
+        wind_dir = weather_data['wind_dir']
         
-        response = f"The weather in {location}, {country} is currently {temp}°C with {description}. "
+        # Build location string
+        if region:
+            location_str = f"{location}, {region}, {country}"
+        else:
+            location_str = f"{location}, {country}"
+        
+        response = f"The weather in {location_str} is currently {temp}°C with {condition}. "
         response += f"It feels like {feels_like}°C. "
-        response += f"Humidity is {humidity}% and wind speed is {wind} km/h."
+        response += f"Humidity is {humidity}% and wind is {wind} km/h from the {wind_dir}."
         
         return response
