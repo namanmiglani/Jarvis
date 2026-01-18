@@ -23,12 +23,21 @@ console.log(
 	`\nTimezone difference to GMT+0: ${utcOffsetSeconds}s`,
 );
 
+
 const hourly = data.hourly;
 
 // Note: The order of weather variables in the URL query and the indices below need to match!
+// Parse times robustly: API may return ISO strings or epoch seconds.
 const weatherData = {
 	hourly: {
-		time: hourly.time.map(t => new Date((t + utcOffsetSeconds) * 1000)),
+		time: hourly.time.map(t => {
+			if (typeof t === 'number') {
+				// epoch seconds, apply offset if provided
+				return new Date((t + (utcOffsetSeconds || 0)) * 1000);
+			}
+			// ISO-like string
+			return new Date(t);
+		}),
 		temperature_2m: hourly.temperature_2m,
 		precipitation_probability: hourly.precipitation_probability,
 		wind_speed_10m: hourly.wind_speed_10m,
@@ -44,7 +53,8 @@ function getIcon(precip) {
 }
 
 function formatTime(date) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	if (!(date instanceof Date) || isNaN(date)) return '';
+	return date.toLocaleTimeString([], { hour: 'numeric', hour12: true });
 }
 
 // Update current weather (first hour)
@@ -59,13 +69,49 @@ document.getElementById('wind').textContent = `${Math.round(currentWind)} km/h w
 // Thresholds: >=20°C => sunny, <20°C => cloudy (adjust as desired)
 const sunEl = document.getElementById('sun');
 const cloudEl = document.getElementById('cloud');
+const cloudAreaEl = document.getElementById('cloud-area');
 if (sunEl && cloudEl) {
 	const hotThreshold = 20;
 	if (currentTemp >= hotThreshold) {
 		sunEl.classList.add('visible');
 		cloudEl.classList.remove('visible');
+		if (cloudAreaEl) cloudAreaEl.classList.remove('visible');
 	} else {
 		cloudEl.classList.add('visible');
 		sunEl.classList.remove('visible');
+		if (cloudAreaEl) cloudAreaEl.classList.add('visible');
 	}
 }
+
+// Render next 5 hours (small stylistic row)
+function renderNextHours(count = 5) {
+	const container = document.getElementById('next-hours');
+	if (!container) return;
+	container.innerHTML = '';
+	const times = weatherData.hourly.time;
+	const temps = weatherData.hourly.temperature_2m;
+
+	for (let i = 1; i <= count; i++) {
+		if (i >= times.length) break;
+
+			const t = times[i];
+			const temp = Math.round(temps[i]);
+
+			const item = document.createElement('div');
+			item.className = 'hour-item';
+
+			const label = document.createElement('div');
+			label.className = 'hour-label';
+			label.textContent = formatTime(t) || '—';
+
+			const value = document.createElement('div');
+			value.className = 'hour-temp';
+			value.textContent = `${temp}°`;
+
+		item.appendChild(label);
+		item.appendChild(value);
+		container.appendChild(item);
+	}
+}
+
+renderNextHours(5);

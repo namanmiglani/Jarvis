@@ -48,6 +48,7 @@
 
         /* Cloud animation */
         .cloud { fill: #ffffff; stroke: rgba(0,0,0,0.06); stroke-width: 1; }
+        .cloud { fill: rgba(255,255,255,0.96); stroke: rgba(0,0,0,0.06); stroke-width: 1; }
         .cloud-wrap { animation: cloud-move 8s linear infinite; }
         @keyframes cloud-move { 0% { transform: translateX(-10%); } 50% { transform: translateX(6%); } 100% { transform: translateX(-10%); } }
         #temp {
@@ -55,6 +56,24 @@
             font-weight: 300;
             margin: 0;
         }
+
+        /* Centered multi-cloud area */
+        #cloud-area {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 220px;
+            height: 90px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 420ms ease;
+        }
+        #cloud-area .cloud-item { transform-origin: center; animation: cloud-floating 7s ease-in-out infinite; }
+        #cloud-area .cloud-item:nth-child(1) { animation-duration: 9s; }
+        #cloud-area .cloud-item:nth-child(2) { animation-duration: 7s; animation-delay: 0.6s; }
+        #cloud-area .cloud-item:nth-child(3) { animation-duration: 10s; animation-delay: 1.2s; }
+        @keyframes cloud-floating { 0% { transform: translateY(0px); } 50% { transform: translateY(-6px); } 100% { transform: translateY(0px); } }
         #details {
             margin-top: 15px;
             font-size: 16px;
@@ -62,6 +81,29 @@
         #details div {
             margin-bottom: 5px;
         }
+        /* Next hours row */
+        .hours {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 14px;
+            gap: 8px;
+            padding: 6px 4px 0 4px;
+        }
+        .hour-item {
+            flex: 1 1 0;
+            background: rgba(255,255,255,0.28);
+            border-radius: 10px;
+            padding: 6px 6px;
+            font-size: 12px;
+            color: #111;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06) inset;
+        }
+        .hour-label { opacity: 0.78; font-size: 11px; }
+        .hour-temp { font-weight: 600; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -85,10 +127,30 @@
             </svg>
         </div>
 
+        <!-- Centered multi-cloud area (larger, decorative) -->
+        <div id="cloud-area" aria-hidden="true">
+            <svg viewBox="0 0 200 90" class="cloud-multi-svg" role="img">
+                <g class="cloud-multi">
+                    <g class="cloud-item" transform="translate(0,6)">
+                        <path class="cloud" d="M30 60h110a20 20 0 0 0 0-40 30 30 0 0 0-60-4 18 18 0 0 0-2 44z"></path>
+                    </g>
+                    <g class="cloud-item" transform="translate(-10,18)">
+                        <path class="cloud" d="M20 55h90a16 16 0 0 0 0-32 24 24 0 0 0-48-3 14 14 0 0 0-2 35z"></path>
+                    </g>
+                    <g class="cloud-item" transform="translate(30,30)">
+                        <path class="cloud" d="M80 65h60a12 12 0 0 0 0-24 18 18 0 0 0-36-2 12 12 0 0 0-1 26z"></path>
+                    </g>
+                </g>
+            </svg>
+        </div>
+
         <div id="temp">--°C</div>
         <div id="details">
             <div id="precip">--% chance of rain</div>
             <div id="wind">-- km/h wind</div>
+        </div>
+        <div class="hours" id="next-hours" aria-live="polite">
+            <!-- Next 5 hours will be rendered here by script.js -->
         </div>
     </div>
     <script src="script.js" type="module"></script>
