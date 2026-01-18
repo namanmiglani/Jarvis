@@ -43,8 +43,8 @@ st.markdown("""
     /* Weather overlay */
     .weather-overlay {
         position: absolute;
-        bottom: 20px;
-        right: 20px;
+        top: 90px;
+        left: 30px;
         z-index: 2;
         pointer-events: auto;
     }
@@ -102,10 +102,10 @@ weather = get_weather()
 container = st.empty()
 
 # 4. Camera Setup
-cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # 0 or 1 depending on your camera
+cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)  # 0 or 1 depending on your camera
 # Set camera resolution
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1512)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 982)
 
 # 5. Main Loop
 while cap.isOpened():
