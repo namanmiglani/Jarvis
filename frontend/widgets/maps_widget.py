@@ -25,7 +25,7 @@ class MapsWidget:
         
         # Auto-hide timer logic
         self.last_update_time = 0
-        self.display_duration = 10.0 # seconds
+        self.display_duration = 15.0 # seconds
         self.is_visible = False
         
     def show_results(self, places_list):

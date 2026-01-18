@@ -242,13 +242,27 @@ User: "Thank you"
                 HumanMessage(content=f"Classify this message: {user_message}")
             ]
             
-            # Get structured output
+            # Get structured output with timeout
+            logger.info("Invoking LLM for structured output...")
             structured_llm = llm.with_structured_output(IntentClassification)
-            result = await structured_llm.ainvoke(messages)
             
-            logger.info(f"Intent classified: {result.intent} (confidence: {result.confidence})")
-            logger.info(f"Has followup: {result.has_followup}")
-            return result
+            try:
+                # Add timeout to prevent hanging
+                import asyncio
+                result = await asyncio.wait_for(
+                    structured_llm.ainvoke(messages),
+                    timeout=30.0  # 30 second timeout
+                )
+                logger.info(f"✅ LLM response received successfully")
+                logger.info(f"Intent classified: {result.intent} (confidence: {result.confidence})")
+                logger.info(f"Has followup: {result.has_followup}")
+                return result
+            except asyncio.TimeoutError:
+                logger.error("❌ LLM invocation timed out after 30 seconds")
+                raise
+            except Exception as e:
+                logger.error(f"❌ Error during LLM invocation or parsing: {type(e).__name__}: {e}")
+                raise
             
         except Exception as e:
             logger.error(f"❌ Error classifying intent: {e}")

@@ -96,7 +96,7 @@ class VisionTool:
                 content=[
                     {
                         "type": "text",
-                        "text": "Describe what you see in this image in detail. Include objects, people, setting, colors, and any notable features. Be concise but thorough."
+                        "text": "Describe what you see in this image in detail. Include objects, people, setting, colors, and any notable features. Be concise but thorough limit yourself to around 100 words or 4 sentences."
                     },
                     {
                         "type": "image_url",
