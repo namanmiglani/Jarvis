@@ -111,7 +111,9 @@ Analyze the user's message and return a structured JSON response with:
 3. **entities**: Dictionary of extracted entities (location, date, time, etc.)
 4. **has_followup**: Boolean - TRUE if you need to ask a followup question to continue the conversation, FALSE if you can provide a final response
 5. **followup_question**: String - The followup question to ask (ONLY if has_followup is TRUE)
-6. **response**: String - Direct response for small talk or general questions (ONLY if has_followup is FALSE)
+6. **response**: String - Direct response for small talk or general questions (ONLY if has_followup is FALSE AND intent is small_talk or general_question)
+
+**CRITICAL: The 'response' field should ONLY be populated for small_talk and general_question intents. For tool-based intents (weather, vision, snapshot_save, snapshot_retrieve), the response field must be null/empty as the tool will generate the response.**
 
 **Followup Logic:**
 - Set has_followup=TRUE when:

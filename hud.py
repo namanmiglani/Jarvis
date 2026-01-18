@@ -246,7 +246,27 @@ class JarvisHUD(QWidget):
         """Clean up on close."""
         self.cap.release()
         asyncio.create_task(self.backend_client.disconnect())
-        super().closeEvent(event)
+        """Handle window close event."""
+        self.cleanup()
+        event.accept()
+    
+    def cleanup(self):
+        """Clean up resources."""
+        print("\n🛑 Shutting down HUD...")
+        
+        # Stop timer
+        if hasattr(self, 'timer'):
+            self.timer.stop()
+        
+        # Disconnect backend
+        if hasattr(self, 'backend_client') and self.backend_client.is_connected():
+            asyncio.create_task(self.backend_client.disconnect())
+        
+        # Release camera
+        if hasattr(self, 'cap') and self.cap.isOpened():
+            self.cap.release()
+        
+        print("✅ HUD shutdown complete")
     
     def keyPressEvent(self, event):
         """Handle key presses."""
@@ -254,17 +274,41 @@ class JarvisHUD(QWidget):
             self.close()
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point."""
+    import signal
+    
+    # Create application
     app = QApplication(sys.argv)
     
-    # Set up async event loop
+    # Set up event loop
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
     
-    # Set global font
-    app.setFont(QFont("Orbitron", 10))
+    # Create HUD
+    hud = JarvisHUD()
+    hud.show()
     
-    window = JarvisHUD()
+    # Graceful shutdown on Ctrl+C
+    def signal_handler(sig, frame):
+        print("\n\n🛑 Received interrupt signal...")
+        hud.cleanup()
+        loop.stop()
+        app.quit()
+        sys.exit(0)
     
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    # Run event loop
     with loop:
-        loop.run_forever()
+        try:
+            loop.run_forever()
+        except KeyboardInterrupt:
+            print("\n\n🛑 Keyboard interrupt...")
+            hud.cleanup()
+        finally:
+            loop.close()
+
+
+if __name__ == "__main__":
+    main()
