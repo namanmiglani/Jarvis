@@ -31,8 +31,9 @@ class IntentClassification(BaseModel):
     intent: Intent = Field(description="The classified intent")
     confidence: float = Field(description="Confidence score between 0 and 1", ge=0.0, le=1.0)
     entities: Dict[str, Any] = Field(default_factory=dict, description="Extracted entities")
-    needs_clarification: bool = Field(description="Whether clarifying questions are needed")
-    clarifying_question: Optional[str] = Field(default=None, description="Question to ask for clarification")
+    has_followup: bool = Field(description="Whether a followup question is needed to continue the conversation")
+    followup_question: Optional[str] = Field(default=None, description="The followup question to ask, if has_followup is True")
+    response: Optional[str] = Field(default=None, description="Direct response for small talk or general questions, if no followup needed")
 
 
 class ReasoningAgent:
@@ -58,14 +59,14 @@ class ReasoningAgent:
             self.llm = ChatOpenAI(
                 api_key=api_key,
                 base_url="https://openrouter.ai/api/v1",
-                model="meta-llama/llama-4-maverick",  # Free tier for testing
+                model="openai/gpt-oss-20b",  # Fast model optimized for structured tasks
                 temperature=0.3,  # Lower temperature for consistent classification
                 default_headers={
                     "HTTP-Referer": "https://github.com/jarvis-ai",
                     "X-Title": "Jarvis AI Assistant"
                 }
             )
-            logger.info("✅ LLM initialized with Gemini 2.0 Flash via OpenRouter")
+            logger.info("✅ LLM initialized with gpt oss 20b via OpenRouter")
         
         return self.llm
     
@@ -82,17 +83,17 @@ class ReasoningAgent:
             conversation_context: Optional conversation history for context
             
         Returns:
-            IntentClassification with intent, entities, and clarification needs
+            IntentClassification with intent, entities, and followup information
         """
         logger.info(f"Classifying intent for: {user_message}")
         
         try:
             llm = self._get_llm()
             
-            # Build system prompt
-            system_prompt = """You are an AI assistant that classifies user intents and extracts entities.
+            # Build comprehensive system prompt
+            system_prompt = """You are an AI assistant that classifies user intents and manages conversation flow.
 
-Supported intents:
+**Supported Intents:**
 - weather: Questions about weather conditions
 - calendar: Scheduling, events, reminders
 - translation: Translate text or speech
@@ -100,23 +101,85 @@ Supported intents:
 - small_talk: Greetings, how are you, casual conversation
 - unknown: Cannot determine intent
 
-For each message:
-1. Classify the intent
-2. Extract relevant entities (location, date, time, etc.)
-3. Determine if you need more information
-4. If clarification needed, generate a natural question
+**Your Task:**
+Analyze the user's message and return a structured JSON response with:
 
-Examples:
-- "What's the weather?" → intent=weather, needs_clarification=True, question="Which city?"
-- "Weather in Vancouver" → intent=weather, entities={location: "Vancouver"}
-- "Schedule a meeting tomorrow at 2pm" → intent=calendar, entities={date: "tomorrow", time: "2pm"}
-- "How are you?" → intent=small_talk
+1. **intent**: The classified intent (one of the above)
+2. **confidence**: Float between 0 and 1
+3. **entities**: Dictionary of extracted entities (location, date, time, etc.)
+4. **has_followup**: Boolean - TRUE if you need to ask a followup question to continue the conversation, FALSE if you can provide a final response
+5. **followup_question**: String - The followup question to ask (ONLY if has_followup is TRUE)
+6. **response**: String - Direct response for small talk or general questions (ONLY if has_followup is FALSE)
 
-Respond with structured JSON."""
+**Followup Logic:**
+- Set has_followup=TRUE when:
+  * Missing required information (e.g., "What's the weather?" needs location)
+  * Need clarification on ambiguous input
+  * Tool-based intents (weather, calendar, translation) that need more details
+  
+- Set has_followup=FALSE when:
+  * Small talk (respond directly in 'response' field)
+  * General questions (respond directly in 'response' field)
+  * Have all required information for tool execution
+  * User says goodbye/thank you (respond politely in 'response' field)
+
+**Examples:**
+
+User: "What's the weather?"
+→ {
+  "intent": "weather",
+  "confidence": 1.0,
+  "entities": {},
+  "has_followup": true,
+  "followup_question": "Which city or location would you like to know the weather for?",
+  "response": null
+}
+
+User: "Weather in Boston"
+→ {
+  "intent": "weather",
+  "confidence": 1.0,
+  "entities": {"location": "Boston"},
+  "has_followup": false,
+  "followup_question": null,
+  "response": null
+}
+
+User: "How are you?"
+→ {
+  "intent": "small_talk",
+  "confidence": 1.0,
+  "entities": {},
+  "has_followup": false,
+  "followup_question": null,
+  "response": "I'm functioning optimally, thank you for asking. How may I assist you today?"
+}
+
+User: "What is 2+2?"
+→ {
+  "intent": "general_question",
+  "confidence": 1.0,
+  "entities": {},
+  "has_followup": false,
+  "followup_question": null,
+  "response": "2 plus 2 equals 4."
+}
+
+User: "Thank you"
+→ {
+  "intent": "small_talk",
+  "confidence": 1.0,
+  "entities": {},
+  "has_followup": false,
+  "followup_question": null,
+  "response": "You're welcome. Is there anything else I can help you with?"
+}
+
+**CRITICAL:** Always set has_followup correctly to control conversation flow."""
 
             # Add conversation context if available
             if conversation_context:
-                system_prompt += f"\n\nRecent conversation:\n{conversation_context}"
+                system_prompt += f"\n\n**Recent Conversation Context:**\n{conversation_context}"
             
             # Create messages
             messages = [
@@ -129,6 +192,7 @@ Respond with structured JSON."""
             result = await structured_llm.ainvoke(messages)
             
             logger.info(f"Intent classified: {result.intent} (confidence: {result.confidence})")
+            logger.info(f"Has followup: {result.has_followup}")
             return result
             
         except Exception as e:
@@ -138,48 +202,6 @@ Respond with structured JSON."""
                 intent=Intent.UNKNOWN,
                 confidence=0.0,
                 entities={},
-                needs_clarification=False
+                has_followup=False,
+                response="I encountered an error processing your request."
             )
-    
-    async def generate_response(
-        self,
-        intent: Intent,
-        entities: Dict[str, Any],
-        conversation_context: Optional[str] = None
-    ) -> str:
-        """
-        Generate a response based on intent and entities.
-        
-        Args:
-            intent: The classified intent
-            entities: Extracted entities
-            conversation_context: Optional conversation history
-            
-        Returns:
-            Generated response text
-        """
-        logger.info(f"Generating response for intent: {intent}")
-        
-        try:
-            llm = self._get_llm()
-            
-            # Build prompt based on intent
-            if intent == Intent.SMALL_TALK:
-                prompt = f"Respond naturally to this greeting or small talk: {conversation_context}"
-            elif intent == Intent.GENERAL_QUESTION:
-                prompt = f"Answer this question concisely: {conversation_context}"
-            else:
-                # For tool-based intents, acknowledge and indicate processing
-                return f"I'll help you with that {intent.value} request."
-            
-            messages = [
-                SystemMessage(content="You are Jarvis, a sophisticated AI assistant. Be concise and professional."),
-                HumanMessage(content=prompt)
-            ]
-            
-            response = await llm.ainvoke(messages)
-            return response.content
-            
-        except Exception as e:
-            logger.error(f"❌ Error generating response: {e}")
-            return "I encountered an error processing your request."

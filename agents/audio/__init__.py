@@ -38,6 +38,7 @@ class AudioAgent:
         self.audio_stream = None
         self.pa = None
         self.is_listening = False
+        self.in_conversation = False  # Flag to pause wake word detection during conversations
         
         # Audio settings
         self.sample_rate = 16000
@@ -66,6 +67,11 @@ class AudioAgent:
             )
             logger.info("✅ Wake word model loaded successfully")
             
+            # Pre-load Whisper model to avoid delay on first transcription
+            logger.info("Pre-loading Whisper model...")
+            self.whisper_model = whisper.load_model("small")
+            logger.info("✅ Whisper model pre-loaded")
+            
             # Initialize PyAudio
             self.pa = pyaudio.PyAudio()
             
@@ -89,15 +95,80 @@ class AudioAgent:
             logger.error(f"Error details: {type(e).__name__}")
             await self.stop()
     
+    def pause_wake_word_detection(self):
+        """Pause wake word detection during active conversation."""
+        logger.info("⏸️  Pausing wake word detection")
+        self.in_conversation = True
+    
+    async def resume_wake_word_detection(self):
+        """Resume wake word detection after conversation ends."""
+        logger.info("▶️  Resuming wake word detection...")
+        
+        # Wait for TTS to complete and audio to settle
+        await asyncio.sleep(2)
+        
+        # Clear any remaining audio buffer
+        self._clear_audio_buffer()
+        
+        # Reset wake word model's internal state by feeding silent audio
+        # OpenWakeWord maintains ~32k sample buffer that needs flushing
+        self._reset_wake_word_model_state()
+        
+        # Resume detection
+        self.in_conversation = False
+        logger.info("✅ Wake word detection resumed")
+    
+    def _reset_wake_word_model_state(self):
+        """Reset the wake word model's internal state by feeding silent audio."""
+        if not self.wake_model:
+            return
+        
+        try:
+            # Feed ~32,000 samples of silence to flush model's internal buffer
+            # At 1280 samples per chunk, need ~25 chunks
+            silent_chunk = np.zeros(self.chunk_size, dtype=np.int16)
+            
+            for i in range(30):  # Extra margin for safety
+                self.wake_model.predict(silent_chunk)
+            
+            logger.info("🔄 Wake word model state reset")
+        except Exception as e:
+            logger.warning(f"Error resetting wake word model state: {e}")
+    
+    def _clear_audio_buffer(self):
+        """Clear accumulated audio data from the stream buffer."""
+        if not self.audio_stream:
+            return
+        
+        try:
+            # Read and discard all buffered audio chunks
+            chunks_cleared = 0
+            while self.audio_stream.get_read_available() > 0:
+                self.audio_stream.read(
+                    self.audio_stream.get_read_available(),
+                    exception_on_overflow=False
+                )
+                chunks_cleared += 1
+            
+            if chunks_cleared > 0:
+                logger.info(f"🧹 Cleared {chunks_cleared} audio buffer chunks")
+        except Exception as e:
+            logger.warning(f"Error clearing audio buffer: {e}")
+    
     async def _listen_for_wake_word(self):
         """Continuous listening loop for wake word."""
         try:
             while self.is_listening:
-                # Read audio chunk
+                # Always read audio chunk to prevent buffer accumulation
                 audio_data = self.audio_stream.read(
                     self.chunk_size,
                     exception_on_overflow=False
                 )
+                
+                # Skip wake word detection if in active conversation
+                if self.in_conversation:
+                    await asyncio.sleep(0.01)
+                    continue
                 
                 # Convert to numpy array
                 audio_array = np.frombuffer(audio_data, dtype=np.int16)
@@ -105,18 +176,16 @@ class AudioAgent:
                 # Predict wake word
                 prediction = self.wake_model.predict(audio_array)
                 
-                # Check if wake word detected (threshold: 0.5)
+                # Check if wake word detected (threshold: 0.9)
                 for wake_word, score in prediction.items():
-                    if score > 0.5:
+                    if score > 0.9:
                         logger.info(f"🎯 Wake word detected: '{wake_word}' (confidence: {score:.2f})")
+                        
                         await self.play_chime()
                         
-                        # Trigger callback
+                        # Trigger callback (orchestrator will handle pausing)
                         if self.on_wake_word_detected:
                             await self.on_wake_word_detected()
-                        
-                        # Small delay to prevent multiple triggers
-                        await asyncio.sleep(2)
                 
                 # Small delay to prevent CPU overload
                 await asyncio.sleep(0.01)
@@ -128,14 +197,11 @@ class AudioAgent:
             await self.stop()
     
     async def play_chime(self):
-        """Play activation chime and greet user with TTS."""
+        """Play activation chime (visual feedback only)."""
         logger.info("🔔 *Chime sound* - Jarvis activated!")
         print("\n" + "="*50)
-        print("🔔 Hi, how can I assist you?")
+        print("🔔 Jarvis activated")
         print("="*50 + "\n")
-        
-        # Speak the greeting
-        await self.text_to_speech("Hi, how can I assist you?")
     
     async def speech_to_text(self) -> str:
         """
@@ -152,8 +218,8 @@ class AudioAgent:
             if self.whisper_model is None:
                 logger.info("Loading Whisper model (first time only)...")
                 print("⏳ Loading Whisper model... (this may take a moment)")
-                self.whisper_model = whisper.load_model("tiny")  # Fast, ~75MB
-                logger.info("✅ Whisper model loaded")
+                self.whisper_model = whisper.load_model("tiny")  # Fast, ~75MB, 3x faster than small
+                logger.info("✅ Whisper tiny model loaded")
             
             # Record audio for 5 seconds
             RECORD_SECONDS = 5
@@ -233,7 +299,7 @@ class AudioAgent:
             
             async with self.openai_client.audio.speech.with_streaming_response.create(
                 model="gpt-4o-mini-tts",
-                voice="onyx",  # Deep, sophisticated voice (most JARVIS-like)
+                voice="ash",  # Deep, sophisticated voice (most JARVIS-like)
                 input=text,
                 instructions="Speak in a sophisticated, professional British accent like an advanced AI assistant.",
                 response_format="pcm"

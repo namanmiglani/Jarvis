@@ -29,6 +29,10 @@ sounddevice>=0.4.6  # Required for OpenAI LocalAudioPlayer
 langchain>=0.1.0
 langchain-openai>=0.0.5  # For OpenRouter compatibility
 langchain-community>=0.0.20
+langgraph>=0.0.20
+
+# API clients
+requests>=2.31.0
 
 # ============================================
 # PHASE 2+: Uncomment as needed
