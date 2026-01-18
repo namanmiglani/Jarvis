@@ -39,6 +39,77 @@ Response → ElevenLabs TTS → User
     HUD Updates (WebSocket)
 ```
 
+### Agent Loop
+
+The orchestrator manages a continuous conversation loop triggered by the wake word:
+
+```mermaid
+graph TD
+    A[🔴 Dormant - Listening for Wake Word] -->|"Hey Jarvis" detected| B[🔵 Activated]
+    B --> C[🎤 Listen for Command - 5s]
+    C --> D[📝 Transcribe with Whisper]
+    D --> E[🧠 Classify Intent]
+    E --> F{Has Followup?}
+    F -->|Yes| G[💬 Ask Followup Question]
+    G --> H[🔊 Speak with ElevenLabs]
+    H --> C
+    F -->|No| I[🛠️ Execute Tool]
+    I --> J[📤 Generate Response]
+    J --> K[🔊 Speak Response]
+    K --> L[✅ Conversation Complete]
+    L --> A
+```
+
+**Key Features:**
+
+- Multi-turn conversations with followup questions
+- Automatic return to dormant state after completion
+- State broadcasting to HUD at each step
+
+### Reasoning Flow
+
+LangGraph orchestrates intent classification and tool execution:
+
+```mermaid
+graph LR
+    A[User Input] --> B[Classify Intent Node]
+    B --> C{Decision Router}
+    C -->|has_followup=true| D[END - Ask Followup]
+    C -->|has_response| E[Generate Response Node]
+    C -->|needs_tool| F[Execute Tool Node]
+    F --> E
+    E --> G[END - Final Response]
+
+    style B fill:#e1bee7
+    style F fill:#a5d6a7
+    style E fill:#90caf9
+    style D fill:#ffcc80
+    style G fill:#ffcc80
+```
+
+**Supported Intents:**
+
+- `weather` - Weather queries
+- `vision` - Camera surroundings description
+- `snapshot_save` / `snapshot_retrieve` - Image capture/retrieval
+- `translate` - OCR and translation
+- `distance` - Proximity search
+- `small_talk` - Casual conversation
+- `general_question` - Knowledge queries
+- `self_destruct` - System shutdown
+
+**Intent Classification Schema:**
+
+```python
+class IntentClassification:
+    intent: Intent                    # Classified intent
+    confidence: float                 # 0.0 to 1.0
+    entities: Dict[str, Any]         # Extracted entities (location, language, etc.)
+    has_followup: bool               # Whether to ask a followup question
+    followup_question: Optional[str] # The followup question to ask
+    response: Optional[str]          # Direct response for small talk
+```
+
 ## ✨ Features
 
 ### 🎤 Voice Interaction
