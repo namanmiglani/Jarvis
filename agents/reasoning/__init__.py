@@ -24,6 +24,7 @@ class Intent(str, Enum):
     VISION = "vision"  # Describe camera surroundings
     SNAPSHOT_SAVE = "snapshot_save"  # Save camera snapshot
     SNAPSHOT_RETRIEVE = "snapshot_retrieve"  # Retrieve saved snapshot
+    TRANSLATE = "translate"  # OCR and translate text from camera
     UNKNOWN = "unknown"
 
 
@@ -99,6 +100,7 @@ class ReasoningAgent:
 - vision: Describe camera surroundings, "what do you see", "describe my surroundings"
 - snapshot_save: Save a camera snapshot, "save a snapshot", "take a picture"
 - snapshot_retrieve: Retrieve saved snapshot, "show my snapshot", "pull up my snapshot"
+- translate: OCR and translate text, "translate this to Spanish", "what does this say in French"
 - general_question: General knowledge questions
 - small_talk: Greetings, how are you, casual conversation
 - unknown: Cannot determine intent
@@ -128,6 +130,7 @@ Analyze the user's message and return a structured JSON response with:
   * User says goodbye/thank you (respond politely in 'response' field)
   * VISION requests - camera is always available, execute immediately
   * SNAPSHOT requests - camera is always available, execute immediately
+  * TRANSLATE requests - camera is always available, execute immediately (extract target language from user message)
 
 **Examples:**
 
@@ -146,6 +149,36 @@ User: "Weather in Boston"
   "intent": "weather",
   "confidence": 1.0,
   "entities": {"location": "Boston"},
+  "has_followup": false,
+  "followup_question": null,
+  "response": null
+}
+
+User: "Hey Jarvis"
+→ {
+  "intent": "small_talk",
+  "confidence": 1.0,
+  "entities": {},
+  "has_followup": false,
+  "followup_question": null,
+  "response": "Hello! How can I assist you today?"
+}
+
+User: "Translate this to Spanish"
+→ {
+  "intent": "translate",
+  "confidence": 1.0,
+  "entities": {"language": "es"},
+  "has_followup": false,
+  "followup_question": null,
+  "response": null
+}
+
+User: "What does this say in French?"
+→ {
+  "intent": "translate",
+  "confidence": 1.0,
+  "entities": {"language": "fr"},
   "has_followup": false,
   "followup_question": null,
   "response": null

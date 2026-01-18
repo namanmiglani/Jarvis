@@ -9,14 +9,18 @@ openai>=1.0.0  # OpenAI TTS
 sounddevice>=0.4.6  # Required for OpenAI LocalAudioPlayer
 webrtcvad>=2.0.10  # Voice Activity Detection
 
-# LangChain and LLM
+# LangChain and LangGraph
 langchain>=0.1.0
-langchain-openai>=0.0.5  # For OpenRouter compatibility
-langchain-community>=0.0.20
+langchain-openai>=0.0.5
 langgraph>=0.0.20
+langchain-community>=0.0.20
 
 # API clients
 requests>=2.31.0
+
+# OCR and Translation
+easyocr>=1.7.0
+googletrans==4.0.2
 websockets>=12.0
 
 # HUD / Frontend

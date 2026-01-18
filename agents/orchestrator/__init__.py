@@ -34,7 +34,7 @@ class OrchestratorAgent:
         from agents.audio import AudioAgent
         from agents.reasoning import ReasoningAgent, Intent
         from agents.memory import MemoryAgent
-        from agents.tools import WeatherTool, VisionTool, SnapshotTool
+        from agents.tools import WeatherTool, VisionTool, SnapshotTool, TranslationTool
         from agents.graph import JarvisGraph
         from agents.hud_server import HUDServer
         from agents.camera_manager import CameraManager
@@ -44,12 +44,14 @@ class OrchestratorAgent:
         self.weather_tool = WeatherTool()
         self.vision_tool = VisionTool()
         self.snapshot_tool = SnapshotTool()
+        self.translation_tool = TranslationTool()
         
         # Initialize camera manager
         self.camera_manager = CameraManager()
         self.camera_manager.start()
         self.vision_tool.camera_manager = self.camera_manager
         self.snapshot_tool.camera_manager = self.camera_manager
+        self.translation_tool.camera_manager = self.camera_manager
         
         # Initialize LangGraph workflow
         self.graph = JarvisGraph(
@@ -57,7 +59,8 @@ class OrchestratorAgent:
             memory_agent=self.memory_agent,
             weather_tool=self.weather_tool,
             vision_tool=self.vision_tool,
-            snapshot_tool=self.snapshot_tool
+            snapshot_tool=self.snapshot_tool,
+            translation_tool=self.translation_tool
         )
         
         # Initialize HUD server

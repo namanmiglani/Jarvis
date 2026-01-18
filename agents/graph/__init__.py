@@ -36,13 +36,14 @@ class ConversationState(TypedDict):
 class JarvisGraph:
     """LangGraph workflow for Jarvis agent orchestration."""
     
-    def __init__(self, reasoning_agent, memory_agent, weather_tool, vision_tool=None, snapshot_tool=None):
+    def __init__(self, reasoning_agent, memory_agent, weather_tool, vision_tool=None, snapshot_tool=None, translation_tool=None):
         """Initialize graph with agents and tools."""
         self.reasoning_agent = reasoning_agent
         self.memory_agent = memory_agent
         self.weather_tool = weather_tool
         self.vision_tool = vision_tool
         self.snapshot_tool = snapshot_tool
+        self.translation_tool = translation_tool
         
         # Build the graph
         self.workflow = self._build_graph()
@@ -155,6 +156,21 @@ class JarvisGraph:
                     'error': 'Snapshot tool not available'
                 }
         
+        elif intent == "translate":
+            if self.translation_tool:
+                logger.info("Executing translation tool")
+                # Extract target language from entities
+                entities = state.get("entities", {})
+                target_lang = entities.get("language", "en")  # Default to English
+                
+                translation_data = await self.translation_tool.translate_from_camera(target_lang)
+                state["tool_result"] = translation_data
+            else:
+                state["tool_result"] = {
+                    'success': False,
+                    'error': 'Translation tool not available'
+                }
+        
         else:
             # Other tools
             state["tool_result"] = {
@@ -181,6 +197,8 @@ class JarvisGraph:
                 response = self.snapshot_tool.format_save_response(tool_result)
             elif state["intent"] == "snapshot_retrieve":
                 response = self.snapshot_tool.format_retrieve_response(tool_result)
+            elif state["intent"] == "translate":
+                response = self.translation_tool.format_translation_response(tool_result)
             else:
                 response = tool_result.get('error', 'Unable to process request')
             
