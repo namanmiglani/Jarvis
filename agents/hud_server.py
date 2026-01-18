@@ -141,6 +141,19 @@ class HUDServer:
         })
         logger.info(f"Sent response to HUD: {text}")
     
+    async def send_snapshot(self, snapshot_data: dict):
+        """
+        Send snapshot data to HUD.
+        
+        Args:
+            snapshot_data: Snapshot information (filepath, filename)
+        """
+        await self.broadcast({
+            "type": "snapshot",
+            "data": snapshot_data
+        })
+        logger.info("Sent snapshot data to HUD")
+    
     async def stop(self):
         """Stop the WebSocket server."""
         if self.server:

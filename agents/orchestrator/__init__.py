@@ -150,7 +150,13 @@ class OrchestratorAgent:
                 # Send snapshot data to HUD if available
                 if result.get('intent') == 'snapshot_retrieve' and result.get('tool_result'):
                     if result['tool_result'].get('success'):
-                        await self.hud_server.send_snapshot(result['tool_result'])
+                        # Remove numpy array before sending (not JSON serializable)
+                        snapshot_data = {
+                            'filepath': result['tool_result'].get('filepath'),
+                            'filename': result['tool_result'].get('filename'),
+                            'success': True
+                        }
+                        await self.hud_server.send_snapshot(snapshot_data)
                 
                 # Add to memory
                 self.memory_agent.add_message("assistant", response, result['intent'])

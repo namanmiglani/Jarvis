@@ -33,6 +33,7 @@ class BackendClient:
         # Callbacks
         self.on_state_change: Optional[Callable] = None
         self.on_weather_update: Optional[Callable] = None
+        self.on_snapshot_update: Optional[Callable] = None
         self.on_transcription: Optional[Callable] = None
         self.on_response: Optional[Callable] = None
     
@@ -77,6 +78,12 @@ class BackendClient:
             logger.info("Weather update received")
             if self.on_weather_update:
                 self.on_weather_update(weather_data)
+        
+        elif msg_type == "snapshot":
+            snapshot_data = data.get("data")
+            logger.info("Snapshot update received")
+            if self.on_snapshot_update:
+                self.on_snapshot_update(snapshot_data)
         
         elif msg_type == "transcription":
             text = data.get("text")

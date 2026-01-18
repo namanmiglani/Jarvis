@@ -71,10 +71,21 @@ class JarvisHUD(QWidget):
         )
         self.voice_widget.fade.fade_out()  # Start hidden
         
+        # Snapshot widget (right side of screen)
+        from frontend.widgets.snapshot_widget import SnapshotWidget
+        self.snapshot_widget = SnapshotWidget(
+            self.frame_width - 450,  # Right side
+            150,  # Below top
+            width=400,
+            height=300
+        )
+        self.snapshot_widget.fade.fade_out()  # Start hidden
+        
         # Backend client
         self.backend_client = BackendClient()
         self.backend_client.on_state_change = self.on_state_change
         self.backend_client.on_weather_update = self.on_weather_update
+        self.backend_client.on_snapshot_update = self.on_snapshot_update
         self.backend_client.on_transcription = self.on_transcription
         self.backend_client.on_response = self.on_response
         
@@ -129,7 +140,18 @@ class JarvisHUD(QWidget):
     def on_response(self, text: str):
         """Handle response from backend."""
         print(f"HUD Response: {text}")
-        # Response is already in voice_widget via state_change
+        # Could display response on HUD if desired
+    
+    def on_snapshot_update(self, snapshot_data: dict):
+        """Handle snapshot update from backend."""
+        print("HUD Snapshot update received")
+        filepath = snapshot_data.get('filepath')
+        filename = snapshot_data.get('filename', 'snapshot.jpg')
+        
+        if filepath:
+            self.snapshot_widget.set_snapshot(filepath, filename)
+        else:
+            print("No snapshot filepath provided")
     
     def update_frame(self):
         """Update HUD frame."""
@@ -212,9 +234,10 @@ class JarvisHUD(QWidget):
             
             painter.setOpacity(1.0)
         
-        # Draw widgets (they handle their own opacity)
+        # Draw widgets
         self.weather_widget.draw(painter)
         self.voice_widget.draw(painter)
+        self.snapshot_widget.draw(painter)
         
         painter.end()
         self.label.setPixmap(pixmap)
