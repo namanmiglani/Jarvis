@@ -1,20 +1,23 @@
 """
 Jarvis HUD - Futuristic Iron Man-style overlay
 
-Main HUD window with animated widgets and camera feed.
+Main HUD window with animated widgets, camera feed, and backend integration.
 """
 
 import sys
 import cv2
+import asyncio
+import qasync
 from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QFont
 from PyQt5.QtCore import QTimer, Qt
-import requests
 
-# Import widgets
+# Import widgets and client
 from widgets.weather_widget import WeatherWidget
 from widgets.voice_widget import VoiceWidget
 from graphics.hud_painter import Colors, draw_grid_lines, draw_glow_text, draw_corner_bracket
+from backend_client import BackendClient
+from animations.animator import AnimatedValue, FadeAnimation
 
 
 class JarvisHUD(QWidget):
@@ -49,13 +52,34 @@ class JarvisHUD(QWidget):
         else:
             self.frame_width, self.frame_height = 1280, 720
         
+        # HUD state
+        self.state = "idle"  # idle, wake_word, listening, thinking, speaking
+        self.is_active = False
+        
+        # Animations
+        self.hud_fade = FadeAnimation(duration=0.5)
+        self.grid_alpha = AnimatedValue(0, duration=0.5)
+        
         # Initialize widgets
         self.weather_widget = WeatherWidget(50, 150, size=220)
+        self.weather_widget.fade.fade_out()  # Start hidden
+        
         self.voice_widget = VoiceWidget(
             self.frame_width / 2 - 100,
             self.frame_height / 2 - 100,
             size=200
         )
+        self.voice_widget.fade.fade_out()  # Start hidden
+        
+        # Backend client
+        self.backend_client = BackendClient()
+        self.backend_client.on_state_change = self.on_state_change
+        self.backend_client.on_weather_update = self.on_weather_update
+        self.backend_client.on_transcription = self.on_transcription
+        self.backend_client.on_response = self.on_response
+        
+        # Connect to backend after event loop starts
+        QTimer.singleShot(100, lambda: asyncio.create_task(self.backend_client.connect()))
         
         # Timer for updates
         self.timer = QTimer()
@@ -65,38 +89,47 @@ class JarvisHUD(QWidget):
         # Fullscreen
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.showFullScreen()
-        
-        # Fetch initial weather data
-        self.fetch_weather()
-        
-        # Demo: Set voice widget to listening state
-        self.voice_widget.set_state("listening")
     
-    def fetch_weather(self):
-        """Fetch weather data from API."""
-        try:
-            # Use WeatherAPI.com (same as backend)
-            api_key = "2d2eb20b758a451a8bb60232261801"  # From .env
-            url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q=Vancouver&aqi=no"
-            
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                weather_data = {
-                    'location': data['location']['name'],
-                    'region': data['location']['region'],
-                    'country': data['location']['country'],
-                    'temperature': round(data['current']['temp_c']),
-                    'feels_like': round(data['current']['feelslike_c']),
-                    'condition': data['current']['condition']['text'],
-                    'humidity': data['current']['humidity'],
-                    'wind_kph': round(data['current']['wind_kph'], 1),
-                    'wind_dir': data['current']['wind_dir'],
-                    'success': True
-                }
-                self.weather_widget.update_data(weather_data)
-        except Exception as e:
-            print(f"Error fetching weather: {e}")
+    def on_state_change(self, state: str, data: dict):
+        """Handle state change from backend."""
+        print(f"HUD State: {state}")
+        self.state = state
+        
+        if state == "wake_word":
+            # Activate HUD
+            self.is_active = True
+            self.hud_fade.fade_in()
+            self.grid_alpha.set_target(30)
+            self.voice_widget.fade.fade_in()
+        
+        elif state == "idle":
+            # Deactivate HUD
+            self.is_active = False
+            self.hud_fade.fade_out()
+            self.grid_alpha.set_target(0)
+            self.voice_widget.fade.fade_out()
+            self.weather_widget.fade.fade_out()
+        
+        elif state in ["listening", "thinking", "speaking"]:
+            # Update voice widget state
+            response_text = data.get("text", "")
+            self.voice_widget.set_state(state, response_text)
+    
+    def on_weather_update(self, weather_data: dict):
+        """Handle weather update from backend."""
+        print("HUD Weather update received")
+        self.weather_widget.update_data(weather_data)
+        self.weather_widget.fade.fade_in()
+    
+    def on_transcription(self, text: str):
+        """Handle transcription from backend."""
+        print(f"HUD Transcription: {text}")
+        # Could display transcription on HUD if desired
+    
+    def on_response(self, text: str):
+        """Handle response from backend."""
+        print(f"HUD Response: {text}")
+        # Response is already in voice_widget via state_change
     
     def update_frame(self):
         """Update HUD frame."""
@@ -114,40 +147,74 @@ class JarvisHUD(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setRenderHint(QPainter.TextAntialiasing)
         
-        # Draw dark overlay
-        painter.fillRect(0, 0, w, h, Colors.DARK)
+        # Update animations
+        hud_alpha = self.hud_fade.update()
+        grid_alpha_val = int(self.grid_alpha.update())
         
-        # Draw animated grid background
-        draw_grid_lines(painter, w, h, spacing=80, alpha=20)
+        # Draw dark overlay (always visible but subtle when dormant)
+        if self.is_active:
+            painter.fillRect(0, 0, w, h, Colors.DARK)
+        else:
+            # Minimal overlay when dormant
+            dark_dormant = Colors.DARK
+            dark_dormant.setAlpha(50)
+            painter.fillRect(0, 0, w, h, dark_dormant)
         
-        # Draw corner brackets
-        bracket_size = 30
-        draw_corner_bracket(painter, 20, 20, bracket_size, "tl")
-        draw_corner_bracket(painter, w - 20, 20, bracket_size, "tr")
-        draw_corner_bracket(painter, 20, h - 20, bracket_size, "bl")
-        draw_corner_bracket(painter, w - 20, h - 20, bracket_size, "br")
+        # Draw animated grid background (only when active)
+        if grid_alpha_val > 0:
+            draw_grid_lines(painter, w, h, spacing=80, alpha=grid_alpha_val)
         
-        # Draw JARVIS title
-        font = QFont("Orbitron", 24, QFont.Bold)
-        painter.setFont(font)
-        painter.setPen(Colors.PRIMARY)
-        painter.drawText(50, 60, "J.A.R.V.I.S.")
+        # Draw corner brackets (fade in when active)
+        if hud_alpha > 0:
+            painter.setOpacity(hud_alpha)
+            bracket_size = 30
+            draw_corner_bracket(painter, 20, 20, bracket_size, "tl")
+            draw_corner_bracket(painter, w - 20, 20, bracket_size, "tr")
+            draw_corner_bracket(painter, 20, h - 20, bracket_size, "bl")
+            draw_corner_bracket(painter, w - 20, h - 20, bracket_size, "br")
+            
+            # Draw JARVIS title
+            font = QFont("Orbitron", 24, QFont.Bold)
+            painter.setFont(font)
+            painter.setPen(Colors.PRIMARY)
+            painter.drawText(50, 60, "J.A.R.V.I.S.")
+            
+            # Draw status indicator
+            font = QFont("Orbitron", 10)
+            painter.setFont(font)
+            
+            # Status color based on state
+            if self.state == "idle":
+                status_color = Colors.ACCENT
+                status_text = "● STANDBY"
+            elif self.state == "listening":
+                status_color = Colors.PRIMARY
+                status_text = "● LISTENING"
+            elif self.state == "thinking":
+                status_color = Colors.WARNING
+                status_text = "● PROCESSING"
+            elif self.state == "speaking":
+                status_color = Colors.SUCCESS
+                status_text = "● ACTIVE"
+            else:
+                status_color = Colors.PRIMARY
+                status_text = "● ONLINE"
+            
+            painter.setPen(status_color)
+            painter.drawText(50, 85, status_text)
+            
+            # Draw footer
+            font = QFont("Orbitron", 9)
+            painter.setFont(font)
+            painter.setPen(Colors.ACCENT)
+            connection_status = "CONNECTED" if self.backend_client.is_connected() else "DISCONNECTED"
+            painter.drawText(w - 250, h - 30, f"JARVIS v1.0 | {connection_status}")
+            
+            painter.setOpacity(1.0)
         
-        # Draw status indicator
-        font = QFont("Orbitron", 10)
-        painter.setFont(font)
-        painter.setPen(Colors.SUCCESS)
-        painter.drawText(50, 85, "● ONLINE")
-        
-        # Draw widgets
+        # Draw widgets (they handle their own opacity)
         self.weather_widget.draw(painter)
         self.voice_widget.draw(painter)
-        
-        # Draw footer
-        font = QFont("Orbitron", 9)
-        painter.setFont(font)
-        painter.setPen(Colors.ACCENT)
-        painter.drawText(w - 200, h - 30, "JARVIS v1.0 | ACTIVE")
         
         painter.end()
         self.label.setPixmap(pixmap)
@@ -155,31 +222,26 @@ class JarvisHUD(QWidget):
     def closeEvent(self, event):
         """Clean up on close."""
         self.cap.release()
+        asyncio.create_task(self.backend_client.disconnect())
         super().closeEvent(event)
     
     def keyPressEvent(self, event):
         """Handle key presses."""
         if event.key() == Qt.Key_Escape or event.key() == Qt.Key_Q:
             self.close()
-        elif event.key() == Qt.Key_1:
-            # Demo: Toggle voice states
-            states = ["idle", "listening", "thinking", "speaking"]
-            current_idx = states.index(self.voice_widget.state)
-            next_state = states[(current_idx + 1) % len(states)]
-            self.voice_widget.set_state(
-                next_state,
-                "The weather in Vancouver is 3°C with fog." if next_state == "speaking" else ""
-            )
-        elif event.key() == Qt.Key_2:
-            # Demo: Refresh weather
-            self.fetch_weather()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     
+    # Set up async event loop
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    
     # Set global font
     app.setFont(QFont("Orbitron", 10))
     
     window = JarvisHUD()
-    sys.exit(app.exec_())
+    
+    with loop:
+        loop.run_forever()

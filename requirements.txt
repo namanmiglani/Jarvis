@@ -8,13 +8,17 @@ openai-whisper==20231117  # Local STT
 
 openai>=1.0.0  # OpenAI TTS (simpler than Google Cloud)
 sounddevice>=0.4.6  # Required for OpenAI LocalAudioPlayer
+webrtcvad>=2.0.10  # Voice Activity Detection
 
+# LangChain and LLM
 langchain>=0.1.0
 langchain-openai>=0.0.5  # For OpenRouter compatibility
 langchain-community>=0.0.20
 langgraph>=0.0.20
 
+# API clients
 requests>=2.31.0
+websockets>=12.0
 
 PyQt5>=5.15.0
 opencv-python>=4.8.0

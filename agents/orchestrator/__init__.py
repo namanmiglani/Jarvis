@@ -22,6 +22,7 @@ class OrchestratorAgent:
         self.memory_agent = None
         self.weather_tool = None
         self.graph = None  # LangGraph workflow
+        self.hud_server = None  # HUD WebSocket server
         logger.info("Orchestrator Agent initialized")
     
     async def start(self):
@@ -35,6 +36,7 @@ class OrchestratorAgent:
         from agents.memory import MemoryAgent
         from agents.tools import WeatherTool
         from agents.graph import JarvisGraph
+        from agents.hud_server import HUDServer
         
         self.reasoning_agent = ReasoningAgent()
         self.memory_agent = MemoryAgent()
@@ -47,6 +49,10 @@ class OrchestratorAgent:
             weather_tool=self.weather_tool
         )
         
+        # Initialize HUD server
+        self.hud_server = HUDServer()
+        await self.hud_server.start()
+        
         self.audio_agent = AudioAgent(on_wake_word_detected=self.on_wake_word_detected)
         
         # Start wake word detection
@@ -57,15 +63,22 @@ class OrchestratorAgent:
         """Callback when wake word 'Hey Jarvis' is detected."""
         logger.info("🎯 Wake word callback triggered!")
         
+        # Broadcast wake word detection to HUD
+        await self.hud_server.send_state("wake_word")
+        
         # Pause wake word detection during conversation
         self.audio_agent.pause_wake_word_detection()
         
         # Greet the user
+        await self.hud_server.send_state("speaking", {"text": "Hi, how can I assist you?"})
         await self.audio_agent.text_to_speech("Hi, how can I assist you?")
         
         # Multi-turn conversation loop
         max_turns = 10  # Prevent infinite loops
         for turn in range(max_turns):
+            # Broadcast listening state
+            await self.hud_server.send_state("listening")
+            
             # Get user's speech command
             transcription = await self.audio_agent.speech_to_text()
             
@@ -79,8 +92,14 @@ class OrchestratorAgent:
             print(f"📝 You said: \"{transcription}\"")
             print("="*50 + "\n")
             
+            # Send transcription to HUD
+            await self.hud_server.send_transcription(transcription)
+            
             # Add user message to memory
             self.memory_agent.add_message("user", transcription)
+            
+            # Broadcast thinking state
+            await self.hud_server.send_state("thinking")
             
             # Run LangGraph workflow
             result = await self.graph.run(transcription)
@@ -96,6 +115,10 @@ class OrchestratorAgent:
                 # Add to memory
                 self.memory_agent.add_message("assistant", response, result['intent'])
                 
+                # Broadcast speaking state and response
+                await self.hud_server.send_state("speaking", {"text": response})
+                await self.hud_server.send_response(response)
+                
                 # Speak the followup question
                 await self.audio_agent.text_to_speech(response)
                 
@@ -108,14 +131,23 @@ class OrchestratorAgent:
                 
                 logger.info(f"Final response: {response}")
                 
+                # If weather intent, send weather data to HUD
+                if result['intent'] == 'weather' and result.get('tool_result'):
+                    await self.hud_server.send_weather(result['tool_result'])
+                
                 # Add to memory
                 self.memory_agent.add_message("assistant", response, result['intent'])
+                
+                # Broadcast speaking state and response
+                await self.hud_server.send_state("speaking", {"text": response})
+                await self.hud_server.send_response(response)
                 
                 # Speak the response
                 await self.audio_agent.text_to_speech(response)
                 
                 # End conversation and return to wake word detection
                 logger.info(f"Conversation complete. Returning to wake word detection.")
+                await self.hud_server.send_state("idle")
                 await self.audio_agent.resume_wake_word_detection()
                 break  # Exit conversation loop
     
