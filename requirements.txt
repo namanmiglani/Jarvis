@@ -22,6 +22,15 @@ openai>=1.0.0  # OpenAI TTS (simpler than Google Cloud)
 sounddevice>=0.4.6  # Required for OpenAI LocalAudioPlayer
 
 # ============================================
+# PHASE 3: Reasoning Agent (Week 3)
+# ============================================
+
+# LangChain & LLM
+langchain>=0.1.0
+langchain-openai>=0.0.5  # For OpenRouter compatibility
+langchain-community>=0.0.20
+
+# ============================================
 # PHASE 2+: Uncomment as needed
 # ============================================
 

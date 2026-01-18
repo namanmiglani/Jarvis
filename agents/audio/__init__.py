@@ -128,12 +128,14 @@ class AudioAgent:
             await self.stop()
     
     async def play_chime(self):
-        """Play activation chime (audio feedback)."""
+        """Play activation chime and greet user with TTS."""
         logger.info("🔔 *Chime sound* - Jarvis activated!")
-        # TODO: Play actual audio file when we add TTS in Phase 2
         print("\n" + "="*50)
-        print("🔔 *CHIME* - Yes, I'm listening.")
+        print("🔔 Hi, how can I assist you?")
         print("="*50 + "\n")
+        
+        # Speak the greeting
+        await self.text_to_speech("Hi, how can I assist you?")
     
     async def speech_to_text(self) -> str:
         """
