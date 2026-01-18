@@ -17,12 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 class Intent(str, Enum):
-    """Supported intent types."""
+    """Supported intents for user commands."""
     WEATHER = "weather"
-    CALENDAR = "calendar"
-    TRANSLATION = "translation"
-    GENERAL_QUESTION = "general_question"
     SMALL_TALK = "small_talk"
+    GENERAL_QUESTION = "general_question"
+    VISION = "vision"  # Describe camera surroundings
     UNKNOWN = "unknown"
 
 
@@ -95,8 +94,7 @@ class ReasoningAgent:
 
 **Supported Intents:**
 - weather: Questions about weather conditions
-- calendar: Scheduling, events, reminders
-- translation: Translate text or speech
+- vision: Describe camera surroundings, "what do you see", "describe my surroundings"
 - general_question: General knowledge questions
 - small_talk: Greetings, how are you, casual conversation
 - unknown: Cannot determine intent
@@ -115,13 +113,14 @@ Analyze the user's message and return a structured JSON response with:
 - Set has_followup=TRUE when:
   * Missing required information (e.g., "What's the weather?" needs location)
   * Need clarification on ambiguous input
-  * Tool-based intents (weather, calendar, translation) that need more details
+  * Tool-based intents (weather) that need more details
   
 - Set has_followup=FALSE when:
   * Small talk (respond directly in 'response' field)
   * General questions (respond directly in 'response' field)
   * Have all required information for tool execution
   * User says goodbye/thank you (respond politely in 'response' field)
+  * VISION requests - camera is always available, execute immediately
 
 **Examples:**
 

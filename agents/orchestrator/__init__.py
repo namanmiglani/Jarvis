@@ -34,19 +34,27 @@ class OrchestratorAgent:
         from agents.audio import AudioAgent
         from agents.reasoning import ReasoningAgent, Intent
         from agents.memory import MemoryAgent
-        from agents.tools import WeatherTool
+        from agents.tools import WeatherTool, VisionTool
         from agents.graph import JarvisGraph
         from agents.hud_server import HUDServer
+        from agents.camera_manager import CameraManager
         
         self.reasoning_agent = ReasoningAgent()
         self.memory_agent = MemoryAgent()
         self.weather_tool = WeatherTool()
+        self.vision_tool = VisionTool()
+        
+        # Initialize camera manager
+        self.camera_manager = CameraManager()
+        self.camera_manager.start()
+        self.vision_tool.camera_manager = self.camera_manager
         
         # Initialize LangGraph workflow
         self.graph = JarvisGraph(
             reasoning_agent=self.reasoning_agent,
             memory_agent=self.memory_agent,
-            weather_tool=self.weather_tool
+            weather_tool=self.weather_tool,
+            vision_tool=self.vision_tool
         )
         
         # Initialize HUD server
@@ -71,7 +79,7 @@ class OrchestratorAgent:
         
         # Greet the user
         await self.hud_server.send_state("speaking", {"text": "Hi, how can I assist you?"})
-        await self.audio_agent.text_to_speech("Hi, how can I assist you?")
+        await self.audio_agent.text_to_speech_elevenlabs("Hi, how can I assist you?")
         
         # Multi-turn conversation loop
         max_turns = 10  # Prevent infinite loops
@@ -84,7 +92,7 @@ class OrchestratorAgent:
             
             if not transcription:
                 print("\n⚠️  No speech detected or transcription failed\n")
-                await self.audio_agent.text_to_speech("I didn't catch that. Please try again.")
+                await self.audio_agent.text_to_speech_elevenlabs("I didn't catch that. Please try again.")
                 logger.warning("No transcription received")
                 break  # Exit conversation loop
             
@@ -120,7 +128,7 @@ class OrchestratorAgent:
                 await self.hud_server.send_response(response)
                 
                 # Speak the followup question
-                await self.audio_agent.text_to_speech(response)
+                await self.audio_agent.text_to_speech_elevenlabs(response)
                 
                 # Continue loop to listen for answer
                 continue
@@ -143,7 +151,7 @@ class OrchestratorAgent:
                 await self.hud_server.send_response(response)
                 
                 # Speak the response
-                await self.audio_agent.text_to_speech(response)
+                await self.audio_agent.text_to_speech_elevenlabs(response)
                 
                 # End conversation and return to wake word detection
                 logger.info(f"Conversation complete. Returning to wake word detection.")

@@ -36,11 +36,12 @@ class ConversationState(TypedDict):
 class JarvisGraph:
     """LangGraph workflow for Jarvis agent orchestration."""
     
-    def __init__(self, reasoning_agent, memory_agent, weather_tool):
+    def __init__(self, reasoning_agent, memory_agent, weather_tool, vision_tool=None):
         """Initialize graph with agents and tools."""
         self.reasoning_agent = reasoning_agent
         self.memory_agent = memory_agent
         self.weather_tool = weather_tool
+        self.vision_tool = vision_tool
         
         # Build the graph
         self.workflow = self._build_graph()
@@ -119,8 +120,20 @@ class JarvisGraph:
                     'success': False,
                     'error': 'No location provided'
                 }
+        
+        elif intent == "vision":
+            if self.vision_tool:
+                logger.info("Executing vision tool")
+                vision_data = await self.vision_tool.describe_surroundings()
+                state["tool_result"] = vision_data
+            else:
+                state["tool_result"] = {
+                    'success': False,
+                    'error': 'Vision tool not available'
+                }
+        
         else:
-            # Other tools (calendar, translation) - Phase 5
+            # Other tools - Phase 5
             state["tool_result"] = {
                 'success': False,
                 'error': f'Tool for {intent} not yet implemented'
@@ -139,6 +152,8 @@ class JarvisGraph:
         if tool_result:
             if state["intent"] == "weather":
                 response = self.weather_tool.format_weather_response(tool_result)
+            elif state["intent"] == "vision":
+                response = self.vision_tool.format_vision_response(tool_result)
             else:
                 response = tool_result.get('error', 'Unable to process request')
             
