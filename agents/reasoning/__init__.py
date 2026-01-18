@@ -27,6 +27,7 @@ class Intent(str, Enum):
     TRANSLATE = "translate"  # OCR and translate text from camera
     DISTANCE = "distance"  # Proximity search
     SELF_DESTRUCT = "self_destruct"  # Terminate system
+    DID_I_MISS_ANYTHING = "did_i_miss_anything"  # Hardcoded response for status check
     UNKNOWN = "unknown"
 
 
@@ -105,6 +106,7 @@ class ReasoningAgent:
 - translate: OCR and translate text, "translate this to Spanish", "what does this say in French"
 - distance: Find distance/location, "how close is the nearest Starbucks", "where is the closest gym"
 - self_destruct: Terminate system, "self destruct", "initiate self destruct sequence"
+- did_i_miss_anything: Status check query, "did I miss anything", "anything I missed"
 - general_question: General knowledge questions
 - small_talk: Greetings, how are you, casual conversation
 - unknown: Cannot determine intent
@@ -137,6 +139,7 @@ Analyze the user's message and return a structured JSON response with:
   * TRANSLATE requests - camera is always available, execute immediately (extract target language from user message)
   * DISTANCE requests - execute immediately (extract query from user message)
   * **SELF_DESTRUCT requests** - execute immediately (no followup)
+  * **DID_I_MISS_ANYTHING requests** - respond with hardcoded message (no followup)
 
 **Examples:**
 
@@ -228,6 +231,16 @@ User: "Thank you"
   "has_followup": false,
   "followup_question": null,
   "response": "You're welcome. Is there anything else I can help you with?"
+}
+
+User: "Did I miss anything?"
+→ {
+  "intent": "did_i_miss_anything",
+  "confidence": 1.0,
+  "entities": {},
+  "has_followup": false,
+  "followup_question": null,
+  "response": "Nope, couldn't have said it better myself."
 }
 
 **CRITICAL:** Always set has_followup correctly to control conversation flow."""

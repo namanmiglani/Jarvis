@@ -42,7 +42,7 @@ class AudioAgent:
         self.in_conversation = False  # Flag to pause wake word detection during conversations
         
         # Voice Activity Detection
-        self.vad = webrtcvad.Vad(3)  # Aggressiveness: 0-3 (3 = most aggressive)
+        self.vad = webrtcvad.Vad(3)  # Aggressiveness: 0-3 (3 = most aggressive, best for noisy environments)
         
         # TTS clients
         self.openai_client = None
@@ -53,7 +53,7 @@ class AudioAgent:
         self.chunk_size = 1280  # 80ms chunks at 16kHz
         
         logger.info("Audio Agent initialized")
-        logger.info("✅ VAD initialized with aggressiveness: 3")
+        logger.info("✅ VAD initialized with aggressiveness: 3 (optimized for noisy environments)")
     
     async def start_wake_word_detection(self):
         """Start listening for wake word 'Hey Jarvis'."""
@@ -214,16 +214,13 @@ class AudioAgent:
     
     async def speech_to_text(self) -> str:
         """
-        Record audio using VAD and convert speech to text using Whisper.
-        
-        Uses WebRTC VAD to dynamically detect when user stops speaking.
-        Recording stops after 1.5 seconds of continuous silence or 10 seconds max.
+        Record audio for 5 seconds and convert speech to text using Whisper.
         
         Returns:
             Transcribed text from user speech
         """
         logger.info("🎤 Listening for your command...")
-        print("\n🎤 Listening... (speak now)\n")
+        print("\n🎤 Listening... (5 seconds)\n")
         
         try:
             # Load Whisper model if not already loaded
@@ -233,10 +230,9 @@ class AudioAgent:
                 self.whisper_model = whisper.load_model("tiny")  # Fast, ~75MB
                 logger.info("✅ Whisper tiny model loaded")
             
-            # VAD parameters
-            MAX_RECORDING_TIME = 10  # Maximum seconds to record
-            SILENCE_DURATION_TO_STOP = 1.5  # Seconds of silence before stopping
-            FRAME_DURATION_MS = 30  # Frame duration for VAD (10, 20, or 30ms)
+            # Recording parameters (fixed duration for noisy environments)
+            RECORD_SECONDS = 5  # Fixed recording duration
+            FRAME_DURATION_MS = 30  # Frame duration for consistency
             SAMPLE_RATE = 16000  # Whisper expects 16kHz
             
             # Calculate frame size
@@ -251,47 +247,27 @@ class AudioAgent:
                 frames_per_buffer=frame_size
             )
             
-            logger.info("Recording with VAD (will stop after silence)...")
+            logger.info(f"Recording for {RECORD_SECONDS} seconds...")
             
             # Recording state
             frames = []
-            silence_frames = 0
-            max_silence_frames = int(SILENCE_DURATION_TO_STOP * 1000 / FRAME_DURATION_MS)
-            max_frames = int(MAX_RECORDING_TIME * 1000 / FRAME_DURATION_MS)
-            speech_detected = False
+            max_frames = int(RECORD_SECONDS * 1000 / FRAME_DURATION_MS)
             
             import time
             start_time = time.time()
             
-            # Record until silence or max time
+            # Record for fixed duration
             while len(frames) < max_frames:
                 try:
                     # Read frame
                     frame_data = stream.read(frame_size, exception_on_overflow=False)
                     frames.append(frame_data)
-                    
-                    # Check if frame contains speech
-                    is_speech = self.vad.is_speech(frame_data, SAMPLE_RATE)
-                    
-                    if is_speech:
-                        silence_frames = 0  # Reset silence counter
-                        speech_detected = True
-                    else:
-                        silence_frames += 1
-                        
-                        # Only stop on silence if we've detected speech first
-                        if speech_detected and silence_frames >= max_silence_frames:
-                            recording_time = time.time() - start_time
-                            logger.info(f"✅ Recording stopped after {recording_time:.1f}s (VAD detected silence)")
-                            break
-                
                 except Exception as e:
                     logger.warning(f"Error reading frame: {e}")
                     continue
             
-            # Check if we hit max timeout
-            if len(frames) >= max_frames:
-                logger.info(f"✅ Recording stopped after {MAX_RECORDING_TIME}s (max timeout)")
+            recording_time = time.time() - start_time
+            logger.info(f"✅ Recording complete after {recording_time:.1f}s")
             
             stream.stop_stream()
             stream.close()

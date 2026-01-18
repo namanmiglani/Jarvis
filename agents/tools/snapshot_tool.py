@@ -125,8 +125,7 @@ class SnapshotTool:
         if not result.get('success'):
             return f"I'm sorry, I couldn't save the snapshot. {result.get('error', '')}"
         
-        filename = result.get('filename', 'snapshot')
-        return f"Snapshot saved successfully as {filename}."
+        return f"Snapshot saved successfully."
     
     def format_retrieve_response(self, result: Dict) -> str:
         """Format retrieve snapshot result into natural language response."""
