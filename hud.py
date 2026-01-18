@@ -9,8 +9,9 @@ import cv2
 import asyncio
 import qasync
 from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout
-from PyQt5.QtGui import QImage, QPixmap, QPainter, QFont
+from PyQt5.QtGui import QImage, QPixmap, QPainter, QFont, QColor
 from PyQt5.QtCore import QTimer, Qt
+import time
 
 # Import frontend components
 from frontend.widgets.weather_widget import WeatherWidget
@@ -61,6 +62,10 @@ class JarvisHUD(QWidget):
         self.hud_fade = FadeAnimation(duration=0.5)
         self.grid_alpha = AnimatedValue(0, duration=0.5)
         
+        # Self Destruct
+        self.is_self_destructing = False
+        self.destruction_end_time = 0
+        
         # Initialize widgets
         self.weather_widget = WeatherWidget(50, 150, size=220)
         self.weather_widget.fade.fade_out()  # Start hidden
@@ -92,6 +97,7 @@ class JarvisHUD(QWidget):
         self.backend_client.on_transcription = self.on_transcription
         self.backend_client.on_response = self.on_response
         self.backend_client.on_maps_update = self.on_maps_update
+        self.backend_client.on_self_destruct = self.on_self_destruct
         
         # Connect to backend after event loop starts
         QTimer.singleShot(100, lambda: asyncio.create_task(self.backend_client.connect()))
@@ -142,6 +148,15 @@ class JarvisHUD(QWidget):
         places = maps_data.get('places', [])
         if places:
             self.maps_widget.show_results(places)
+
+    def on_self_destruct(self):
+        """Handle self destruct command."""
+        print("⚠️ SELF DESTRUCT INITIATED")
+        self.is_self_destructing = True
+        self.destruction_end_time = time.time() + 5.5 # 5 seconds countdown
+        # Force HUD active
+        self.is_active = True
+        self.hud_fade.fade_in()
     
     def on_transcription(self, text: str):
         """Handle transcription from backend."""
@@ -251,6 +266,43 @@ class JarvisHUD(QWidget):
         self.voice_widget.draw(painter)
         self.snapshot_widget.draw(painter)
         
+        # Draw Self Destruct Overlay
+        if self.is_self_destructing:
+            remaining = self.destruction_end_time - time.time()
+            if remaining <= 0:
+                print("💥 BOOM")
+                self.close() # Close window (which triggers app exit via signal)
+                QApplication.quit()
+                sys.exit(0)
+            else:
+                # Flashing Red Background
+                if int(remaining * 4) % 2 == 0:
+                    painter.fillRect(0, 0, w, h, QColor(255, 0, 0, 50))
+                
+                # Big Countdown Text
+                center_x = w / 2
+                center_y = h / 2
+                
+                font = QFont("Orbitron", 120, QFont.Bold)
+                painter.setFont(font)
+                text = f"{int(remaining)}"
+                
+                # Draw red glow
+                metrics = painter.fontMetrics()
+                text_w = metrics.horizontalAdvance(text)
+                text_h = metrics.height()
+                
+                painter.setPen(Colors.ERROR) # Red
+                painter.drawText(int(center_x - text_w/2), int(center_y + text_h/4), text)
+                
+                # Warning Text
+                font = QFont("Orbitron", 40, QFont.Bold)
+                painter.setFont(font)
+                warn_text = "SELF DESTRUCT"
+                w_metrics = painter.fontMetrics()
+                w_w = w_metrics.horizontalAdvance(warn_text)
+                painter.drawText(int(center_x - w_w/2), int(center_y - 120), warn_text)
+
         painter.end()
         self.label.setPixmap(pixmap)
     

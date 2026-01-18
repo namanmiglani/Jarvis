@@ -37,6 +37,7 @@ class BackendClient:
         self.on_transcription: Optional[Callable] = None
         self.on_response: Optional[Callable] = None
         self.on_maps_update: Optional[Callable] = None
+        self.on_self_destruct: Optional[Callable] = None
     
     async def connect(self):
         """Connect to backend WebSocket server."""
@@ -103,6 +104,11 @@ class BackendClient:
             logger.info(f"Response: {text}")
             if self.on_response:
                 self.on_response(text)
+                
+        elif msg_type == "self_destruct":
+            logger.info("Self destruct command received")
+            if self.on_self_destruct:
+                self.on_self_destruct()
     
     async def disconnect(self):
         """Disconnect from backend."""

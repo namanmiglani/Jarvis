@@ -25,7 +25,8 @@ class Intent(str, Enum):
     SNAPSHOT_SAVE = "snapshot_save"  # Save camera snapshot
     SNAPSHOT_RETRIEVE = "snapshot_retrieve"  # Retrieve saved snapshot
     TRANSLATE = "translate"  # OCR and translate text from camera
-    DISTANCE = "distance"    # Find nearest place/distance
+    DISTANCE = "distance"  # Proximity search
+    SELF_DESTRUCT = "self_destruct"  # Terminate system
     UNKNOWN = "unknown"
 
 
@@ -103,6 +104,7 @@ class ReasoningAgent:
 - snapshot_retrieve: Retrieve saved snapshot, "show my snapshot", "pull up my snapshot"
 - translate: OCR and translate text, "translate this to Spanish", "what does this say in French"
 - distance: Find distance/location, "how close is the nearest Starbucks", "where is the closest gym"
+- self_destruct: Terminate system, "self destruct", "initiate self destruct sequence"
 - general_question: General knowledge questions
 - small_talk: Greetings, how are you, casual conversation
 - unknown: Cannot determine intent
@@ -133,7 +135,8 @@ Analyze the user's message and return a structured JSON response with:
   * VISION requests - camera is always available, execute immediately
   * SNAPSHOT requests - camera is always available, execute immediately
   * TRANSLATE requests - camera is always available, execute immediately (extract target language from user message)
-  * **DISTANCE requests** - execute immediately (extract query from user message)
+  * DISTANCE requests - execute immediately (extract query from user message)
+  * **SELF_DESTRUCT requests** - execute immediately (no followup)
 
 **Examples:**
 

@@ -147,6 +147,18 @@ class OrchestratorAgent:
                 
                 logger.info(f"Final response: {response}")
                 
+                # Handle self destruct
+                if result.get('intent') == 'self_destruct':
+                    response = "Right away, sir."
+                    await self.hud_server.send_state("speaking", {"text": response})
+                    await self.hud_server.send_response(response)
+                    await self.hud_server.send_self_destruct()
+                    await self.audio_agent.text_to_speech_elevenlabs(response)
+                    
+                    logger.info("Initiating self destruct...")
+                    import sys
+                    sys.exit(0)
+                
                 # Send weather data to HUD if available
                 if result.get('intent') == 'weather' and result.get('tool_result'):
                     if result['tool_result'].get('success'):

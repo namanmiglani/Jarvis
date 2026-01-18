@@ -166,6 +166,13 @@ class HUDServer:
             "data": places_data
         })
         logger.info("Sent maps data to HUD")
+
+    async def send_self_destruct(self):
+        """Send self destruct command to HUD."""
+        await self.broadcast({
+            "type": "self_destruct"
+        })
+        logger.info("Sent self destruct command to HUD")
     
     async def stop(self):
         """Stop the WebSocket server."""
