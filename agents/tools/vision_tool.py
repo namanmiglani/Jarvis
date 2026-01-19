@@ -21,9 +21,13 @@ class VisionTool:
         self.llm = None
         logger.info("Vision Tool initialized")
     
-    async def describe_surroundings(self) -> Dict:
+    async def describe_surroundings(self, custom_prompt: str = None) -> Dict:
         """
         Capture camera frame and describe surroundings using multimodal LLM.
+        
+        Args:
+            custom_prompt: Optional custom prompt/question to ask about the image.
+                          If None, uses default description prompt.
         
         Returns:
             Dictionary with success status and description
@@ -48,7 +52,7 @@ class VisionTool:
             image_base64 = base64.b64encode(buffer).decode('utf-8')
             
             # Call multimodal LLM
-            description = await self._call_vision_llm(image_base64)
+            description = await self._call_vision_llm(image_base64, custom_prompt)
             
             logger.info(f"Vision description: {description[:100]}...")
             
@@ -65,8 +69,17 @@ class VisionTool:
                 "error": str(e)
             }
     
-    async def _call_vision_llm(self, image_base64: str) -> str:
-        """Call OpenRouter with vision model."""
+    async def _call_vision_llm(self, image_base64: str, custom_prompt: str = None) -> str:
+        """
+        Call OpenRouter with vision model.
+        
+        Args:
+            image_base64: Base64 encoded image
+            custom_prompt: Optional custom prompt. If None, uses default description.
+        
+        Returns:
+            Vision model response
+        """
         try:
             from langchain_openai import ChatOpenAI
             from langchain_core.messages import HumanMessage
@@ -91,12 +104,18 @@ class VisionTool:
                 )
                 logger.info("✅ Vision LLM initialized (Gemini Flash 1.5)")
             
+            # Determine prompt to use
+            if custom_prompt:
+                prompt_text = f"{custom_prompt} Be concise but thorough, limit yourself to around 50 words or 2 sentences."
+            else:
+                prompt_text = "Describe what you see in this image in detail. Include objects, people, setting, colors, and any notable features. Be concise but thorough limit yourself to around 50 words or 2 sentences."
+            
             # Create message with image
             message = HumanMessage(
                 content=[
                     {
                         "type": "text",
-                        "text": "Describe what you see in this image in detail. Include objects, people, setting, colors, and any notable features. Be concise but thorough limit yourself to around 50 words or 2 sentences."
+                        "text": prompt_text
                     },
                     {
                         "type": "image_url",

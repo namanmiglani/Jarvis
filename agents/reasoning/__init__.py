@@ -100,7 +100,7 @@ class ReasoningAgent:
 
 **Supported Intents:**
 - weather: Questions about weather conditions
-- vision: Describe camera surroundings, "what do you see", "describe my surroundings"
+- vision: Describe camera surroundings or answer specific questions about what's visible, "what do you see", "describe my surroundings", "check if any items include peanuts", "read the sign"
 - snapshot_save: Save a camera snapshot, "save a snapshot", "take a picture"
 - snapshot_retrieve: Retrieve saved snapshot, "show my snapshot", "pull up my snapshot"
 - translate: OCR and translate text, "translate this to Spanish", "what does this say in French"
@@ -117,6 +117,8 @@ Analyze the user's message and return a structured JSON response with:
 1. **intent**: The classified intent (one of the above)
 2. **confidence**: Float between 0 and 1
 3. **entities**: Dictionary of extracted entities (location, date, time, etc.)
+   - For VISION intent: extract 'vision_query' if user asks a specific question (e.g., "check if items include peanuts"). 
+     If it's a generic request like "what do you see", set vision_query to null or omit it.
 4. **has_followup**: Boolean - TRUE if you need to ask a followup question to continue the conversation, FALSE if you can provide a final response
 5. **followup_question**: String - The followup question to ask (ONLY if has_followup is TRUE)
 6. **response**: String - Direct response for small talk or general questions (ONLY if has_followup is FALSE AND intent is small_talk or general_question)
@@ -134,7 +136,7 @@ Analyze the user's message and return a structured JSON response with:
   * General questions (respond directly in 'response' field)
   * Have all required information for tool execution
   * User says goodbye/thank you (respond politely in 'response' field)
-  * VISION requests - camera is always available, execute immediately
+  * VISION requests - camera is always available, execute immediately (extract vision_query for specific questions, or null for generic)
   * SNAPSHOT requests - camera is always available, execute immediately
   * TRANSLATE requests - camera is always available, execute immediately (extract target language from user message)
   * DISTANCE requests - execute immediately (extract query from user message)
@@ -241,6 +243,36 @@ User: "Did I miss anything?"
   "has_followup": false,
   "followup_question": null,
   "response": "Nope, couldn't have said it better myself."
+}
+
+User: "What do you see?"
+→ {
+  "intent": "vision",
+  "confidence": 1.0,
+  "entities": {},
+  "has_followup": false,
+  "followup_question": null,
+  "response": null
+}
+
+User: "Can you check if any items on this menu include peanuts?"
+→ {
+  "intent": "vision",
+  "confidence": 1.0,
+  "entities": {"vision_query": "check if any items on this menu include peanuts"},
+  "has_followup": false,
+  "followup_question": null,
+  "response": null
+}
+
+User: "Read the sign in front of me"
+→ {
+  "intent": "vision",
+  "confidence": 1.0,
+  "entities": {"vision_query": "read and transcribe the text on this sign"},
+  "has_followup": false,
+  "followup_question": null,
+  "response": null
 }
 
 **CRITICAL:** Always set has_followup correctly to control conversation flow."""

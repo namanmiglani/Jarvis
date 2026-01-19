@@ -127,7 +127,11 @@ class JarvisGraph:
         elif intent == "vision":
             if self.vision_tool:
                 logger.info("Executing vision tool")
-                vision_data = await self.vision_tool.describe_surroundings()
+                # Extract custom vision query if provided
+                vision_query = entities.get('vision_query', None)
+                if vision_query:
+                    logger.info(f"Using custom vision query: {vision_query}")
+                vision_data = await self.vision_tool.describe_surroundings(custom_prompt=vision_query)
                 state["tool_result"] = vision_data
             else:
                 state["tool_result"] = {
